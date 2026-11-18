@@ -109,9 +109,9 @@
           var items = data[ayah.getAttribute("data-n")] || [];
           panel.className = "panel";
           panel.innerHTML = items.map(function (it) {
-            return '<article class="entry entry-' + kind + '">' + (it[0] ? '<p class="entry-src">' + escH(it[0]) + "</p>" : "") +
+            return '<article class="entry entry-' + kind + '">' + (it[0] && !it[3] ? '<p class="entry-src">' + escH(it[0]) + "</p>" : "") +
               (it[2] ? '<p class="entry-note">على الآيات ' + escH(it[2]) + ".</p>" : "") +
-              '<div class="entry-body">' + quranSpans(escH(it[1])) + "</div></article>";
+              (it[3] ? '<div class="entry-body rich">' + it[1] + "</div>" : '<div class="entry-body">' + quranSpans(escH(it[1])) + "</div>") + "</article>";
           }).join("");
         }, function () { panel.innerHTML = "<p>تعذّر التحميل، فأعد المحاولة.</p>"; panel.remove(); toast("تعذّر التحميل"); });
       } else if (!panel) {

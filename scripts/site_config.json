@@ -18,6 +18,8 @@
     "url_pattern": "https://everyayah.com/data/Husary_128kbps/{sss}{aaa}.mp3"
   },
   "lazy_kinds": [
-    "maana"
-  ]
+    "maana",
+    "tafsir"
+  ],
+  "qiraat_show_usul": true
 }

@@ -164,6 +164,8 @@ class Site:
         return re.sub(r"﴿[^﴿﴾\n]{1,400}﴾", lambda m: f'<span class="qv">{m.group(0)}</span>', "".join(out))
 
     def body_html(self, e, prefix) -> str:
+        if e.get("body_format") == "html":   # المأثور والقراءات: HTML مولَّد من مصادره
+            return f'<div class="entry-body rich">{e["body"]}</div>'
         body = re.sub(r"\n{3,}", "\n\n", e["body"].strip())
         return f'<div class="entry-body">{self.linkify(body, prefix)}</div>'
 
@@ -306,6 +308,8 @@ class Site:
             tools = (f'<div class="entry-tools"><a class="btn-ghost" href="{prefix}faida/{e["id"]}.html">'
                      f'رابط الفائدة</a><button class="btn-ghost share" data-url="faida/{e["id"]}.html" '
                      f'type="button">مشاركة</button></div>')
+        if e.get("body_format") == "html":
+            return f'<article class="entry entry-{e["kind"]}">{note}{self.body_html(e, prefix)}</article>'
         if e["kind"] != "faida" and e.get("source_title"):
             src = f'<p class="entry-src">{esc(e["source_title"])}</p>'
             return (f'<article class="entry entry-{e["kind"]}">{src}{note}{self.body_html(e, prefix)}</article>')
@@ -351,6 +355,16 @@ class Site:
         cards = "".join(self.entry_card(e, l, prefix) for e, l in items)
         return f'<section class="surah-block {cls}"><h2>{esc(title)}</h2>{cards}</section>'
 
+    def intro_details(self, sid, prefix) -> str:
+        """مقدمة السورة من الخانات الأخرى (كالتفسير بالمأثور): مطوية تحت عنوانها."""
+        out = []
+        for k in self.kinds:
+            items = [x for x in self.intro[sid] if x[0]["kind"] == k["id"] and k["id"] != "faida"]
+            if items:
+                cards = "".join(self.entry_card(e, l, prefix) for e, l in items)
+                out.append(f'<details class="surah-block intro-kind"><summary>{esc(k["name_ar"])}: مقدمة السورة</summary>{cards}</details>')
+        return "".join(out)
+
     def build_surah(self, s):
         prefix = "../"
         sid = s["id"]
@@ -369,6 +383,7 @@ class Site:
                 if items:
                     data[a["number"]] = [[e.get("source_title") or "", e["body"].strip(),
                                           "" if l["first_ayah_id"] == l["last_ayah_id"] else self.ref(l, False)]
+                                         + ([1] if e.get("body_format") == "html" else [])
                                          for e, l in items]
             p = self.out / "assets" / kind / f"{sid}.json"
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -412,7 +427,8 @@ class Site:
   </div>
 </div>
 <div class="wrap surah-body">
-  {self.surah_block("فوائد عامة في السورة", self.intro[sid], prefix, "intro")}
+  {self.surah_block("فوائد عامة في السورة", [x for x in self.intro[sid] if x[0]["kind"] == "faida"], prefix, "intro")}
+  {self.intro_details(sid, prefix)}
   {basmala}
   {''.join(parts)}
   {self.surah_block("فوائد في ختام السورة", self.end[sid], prefix, "outro")}
