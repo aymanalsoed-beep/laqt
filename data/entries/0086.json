@@ -1,0 +1,27 @@
+{
+  "id": 86,
+  "kind": "faida",
+  "status": "ready",
+  "title": null,
+  "body": "وفائدة أخرى في هذا الدعاء:\n\nأن عوائق الإنسان إما داخلية أو خارجية\nفالداخلية علاجها { رب اشرح لي صدري }\nوالخارجية علاجها { ويسر لي أمري }\n\nوالله أعلم",
+  "locations": [
+    {
+      "surah": 20,
+      "from": 25,
+      "to": 26,
+      "placement": null
+    }
+  ],
+  "source": null,
+  "source_ref": null,
+  "sort_order": 86,
+  "origin": "user",
+  "legacy_id": 86,
+  "legacy_msg": 414,
+  "edits": [
+    "فُصلت عن الفائدة السابقة في الرسالة نفسها (بينهما «---»)"
+  ],
+  "flags": [],
+  "created_at": "2026-11-17T00:00:00Z",
+  "updated_at": "2026-11-18T00:00:00Z"
+}

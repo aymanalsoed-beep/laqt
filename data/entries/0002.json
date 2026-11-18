@@ -1,0 +1,25 @@
+{
+  "id": 2,
+  "kind": "faida",
+  "status": "ready",
+  "title": null,
+  "body": "قال الإمام المفسر عبدالرحمن السعدي -رحمه الله تعالى - في تفسير قوله تعالى: \n﴿بِسمِ اللَّهِ الرَّحمنِ الرَّحيمِ﴾ [الفاتحة 1]\n\n“أي: أبتدئ بكل اسم لله تعالى؛ لأن لفظ «اسم» مفرد مضاف، فيعم جميع الأسماء الحسنى.„",
+  "locations": [
+    {
+      "surah": 1,
+      "from": 1,
+      "to": 1,
+      "placement": null
+    }
+  ],
+  "source": null,
+  "source_ref": null,
+  "sort_order": 2,
+  "origin": "user",
+  "legacy_id": 2,
+  "legacy_msg": 12,
+  "edits": [],
+  "flags": [],
+  "created_at": "2026-11-17T00:00:00Z",
+  "updated_at": "2026-11-18T00:00:00Z"
+}

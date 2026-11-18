@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة لُقَط</title>
+<meta name="theme-color" content="#17463A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Markazi+Text:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<header class="band">
+  <div class="wrap band-row">
+    <div class="brand"><span class="logo">لُقَط</span><span class="brand-sub">لوحة الإدخال والنشر</span></div>
+    <div class="band-tools">
+      <a class="deploy" id="deploy" hidden target="_blank" rel="noopener"></a>
+      <span class="who" id="who" hidden></span>
+      <a class="band-link" id="site-link" href="../" target="_blank" rel="noopener">الموقع</a>
+      <button class="band-link" id="logout" hidden type="button">خروج</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <p class="demo-note" id="demo-note" hidden>نسخة تجريبية: ما تحفظه هنا يبقى في متصفحك ولا يُنشر في الموقع.</p>
+
+  <!-- الدخول -->
+  <section class="card login" id="login" hidden>
+    <h1>الدخول إلى اللوحة</h1>
+    <p>اللوحة تحفظ ما تكتبه في مستودع الموقع على GitHub مباشرة، ثم يُنشر الموقع بنفسه خلال دقيقتين تقريبًا. لذلك تحتاج مرة واحدة إلى «مفتاح دخول» من حسابك في GitHub.</p>
+    <details class="steps" open>
+      <summary>طريقة إنشاء المفتاح (مرة واحدة)</summary>
+      <ol>
+        <li>افتح <a id="token-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">صفحة إنشاء مفتاح جديد في GitHub</a> وأنت داخل حسابك.</li>
+        <li>في <b>Token name</b> اكتب: لوحة لقط. وفي <b>Expiration</b> اختر المدة التي تريد (سنة مثلًا).</li>
+        <li>في <b>Repository access</b> اختر <b>Only select repositories</b> ثم اختر المستودع <b id="repo-name">laqt</b> وحده.</li>
+        <li>في <b>Permissions</b> افتح <b>Repository permissions</b> واجعل <b>Contents</b> على <b>Read and write</b>، و<b>Actions</b> على <b>Read-only</b> (ليظهر لك تقدم النشر).</li>
+        <li>اضغط <b>Generate token</b> في الأسفل، ثم انسخ المفتاح الذي يبدأ بـ <code dir="ltr">github_pat_</code> والصقه هنا.</li>
+      </ol>
+      <p class="muted">المفتاح يبقى في متصفحك وحده، ولا يصل إلا إلى GitHub. ولا يفتح إلا هذا المستودع. وإن فقدت الجهاز فاحذفه من الصفحة نفسها في GitHub.</p>
+    </details>
+    <form id="login-form" class="login-form">
+      <label for="token">مفتاح الدخول</label>
+      <input id="token" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+      <label class="check"><input type="checkbox" id="remember" checked> تذكّرني على هذا الجهاز</label>
+      <button class="btn primary" type="submit">دخول</button>
+      <p class="err" id="login-err" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- اللوحة -->
+  <section id="app" hidden>
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab" data-view="ayah" aria-selected="true">حسب الآية</button>
+      <button role="tab" class="tab" data-view="list" aria-selected="false">كل المواد <span class="count" id="count-all"></span></button>
+      <button role="tab" class="tab" data-view="drafts" aria-selected="false">المسودات <span class="count" id="count-drafts"></span></button>
+    </nav>
+
+    <div class="view" id="view-ayah">
+      <div class="picker card">
+        <div class="picker-row">
+          <label class="field grow"><span>السورة</span><select id="surah"></select></label>
+          <label class="field num"><span>الآية</span><input id="ayah" type="number" min="1" value="1" inputmode="numeric"></label>
+          <div class="nav-btns">
+            <button class="btn icon" id="prev" type="button" aria-label="الآية السابقة" title="الآية السابقة">‹</button>
+            <button class="btn icon" id="next" type="button" aria-label="الآية التالية" title="الآية التالية">›</button>
+          </div>
+        </div>
+        <div class="find">
+          <input id="find" type="search" placeholder="ابحث بكلمة من الآية، أو اكتب: البقرة ٢٥٥" aria-label="البحث عن آية" autocomplete="off">
+          <ul class="find-results" id="find-results" hidden></ul>
+        </div>
+      </div>
+
+      <article class="card ayah-card">
+        <div class="ayah-head"><span class="ref" id="ayah-ref"></span><a class="muted small" id="ayah-site" target="_blank" rel="noopener">عرضها في الموقع</a></div>
+        <p class="ayah-text" id="ayah-text"></p>
+      </article>
+
+      <div id="kinds"></div>
+    </div>
+
+    <div class="view" id="view-list" hidden>
+      <div class="card filters">
+        <label class="field"><span>النوع</span><select id="f-kind"><option value="">الكل</option></select></label>
+        <label class="field"><span>الحالة</span><select id="f-status">
+          <option value="">الكل</option><option value="public">منشورة</option><option value="draft">مسودة</option>
+        </select></label>
+        <label class="field grow"><span>بحث في النص</span><input id="f-q" type="search" placeholder="كلمة من المادة"></label>
+      </div>
+      <ul class="entry-list" id="entry-list"></ul>
+    </div>
+  </section>
+
+  <p class="loading" id="loading">جارٍ التحميل…</p>
+</main>
+
+<!-- المحرر -->
+<dialog id="editor" aria-labelledby="ed-title">
+  <form id="ed-form" method="dialog" class="ed">
+    <header class="ed-head">
+      <h2 id="ed-title">مادة جديدة</h2>
+      <button class="btn icon ghost" type="button" id="ed-close" aria-label="إغلاق">×</button>
+    </header>
+
+    <div class="ed-body">
+      <fieldset class="kinds-pick">
+        <legend>النوع</legend>
+        <div id="ed-kinds" class="pills"></div>
+        <p class="hint" id="ed-kind-hint"></p>
+      </fieldset>
+
+      <label class="field"><span>العنوان <em>(اختياري)</em></span><input id="ed-title-in" type="text"></label>
+
+      <div class="field">
+        <div class="label-row"><span>النص</span>
+          <span class="tools">
+            <button type="button" class="chip" data-wrap="﴿|﴾" title="تُعرض الآية بخط المصحف">﴿ آية ﴾</button>
+            <button type="button" class="chip" data-wrap="«|»">« نقل »</button>
+            <button type="button" class="chip" id="ed-ref" title="إحالة تصير رابطًا إلى الآية">[سورة: آية]</button>
+          </span>
+        </div>
+        <textarea id="ed-body" rows="10" required></textarea>
+        <p class="hint">ما بين ﴿ ﴾ يظهر بخط المصحف، والآية المقتبسة من غير موضع المادة تُربط بها تلقائيًا فتظهر تحتها أيضًا. والإحالة مثل [البقرة: ٦١] تصير رابطًا. واترك سطرًا فارغًا بين الفقرات.</p>
+      </div>
+
+      <fieldset>
+        <legend>المواضع</legend>
+        <div id="ed-locs"></div>
+        <button class="btn small" type="button" id="ed-add-loc">+ موضع آخر</button>
+      </fieldset>
+
+      <div class="two">
+        <label class="field"><span>المصدر <em>(اختياري)</em></span><input id="ed-source" list="sources" type="text" placeholder="مثل: تيسير الكريم الرحمن"></label>
+        <label class="field"><span>الجزء والصفحة</span><input id="ed-source-ref" type="text" placeholder="مثل: ١/ ٢٣"></label>
+      </div>
+      <datalist id="sources"></datalist>
+
+      <details class="preview">
+        <summary>معاينة</summary>
+        <div class="entry-body" id="ed-preview"></div>
+      </details>
+
+      <p class="err" id="ed-err" role="alert"></p>
+    </div>
+
+    <footer class="ed-foot">
+      <div class="confirm" id="ed-confirm" hidden>
+        <span>حذف هذه المادة نهائيًا من الموقع؟</span>
+        <button class="btn danger" type="button" id="ed-del-yes">نعم، احذف</button>
+        <button class="btn" type="button" id="ed-del-no">تراجع</button>
+      </div>
+      <div class="actions" id="ed-actions">
+        <button class="btn primary" type="button" id="ed-publish">نشر</button>
+        <button class="btn" type="button" id="ed-draft">حفظ مسودة</button>
+        <span class="status-now" id="ed-status-now"></span>
+        <button class="btn danger ghost" type="button" id="ed-delete" hidden>حذف</button>
+      </div>
+    </footer>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
