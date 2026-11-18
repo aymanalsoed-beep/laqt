@@ -34,6 +34,7 @@ def plain(s: str) -> str:
     s = re.sub("[إأآٱا]", "ا", s)
     s = s.replace("ى", "ي").replace("ة", "ه").replace("ؤ", "و").replace("ئ", "ي").replace("ء", "")
     s = re.sub(r"[^ء-ي ]", " ", s)
+    s = s.replace("ياايها", "يا ايها").replace("يايها", "يا ايها")
     return re.sub(r"\s+", " ", s).strip()
 
 
@@ -128,7 +129,8 @@ def main():
     hizb_diffs, quote_misses = [], []
     for order, f in enumerate(fawaid, 1):
         flags = list(f["flags"])
-        status = "needs_review" if flags else "ready"
+        # راجع صاحب المشروع الفوائد كلها (2026-11-18)، وتبقى الملاحظات للتوثيق
+        status = "ready"
         con.execute(
             "INSERT INTO entries (id, kind, body, status, origin, legacy_id, legacy_msg, edits, flags, sort_order)"
             " VALUES (?,?,?,?,?,?,?,?,?,?)",
@@ -141,7 +143,7 @@ def main():
             if (s, a) not in gid_of or (s, b) not in gid_of:
                 continue
             g1, g2 = gid_of[(s, a)], gid_of[(s, b)]
-            con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?)", (f["id"], g1, g2, f["place"]))
+            con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)", (f["id"], g1, g2, f["place"], "primary"))
             ref_ayat.extend(range(g1, g2 + 1))
             if ref.get("hizb") and ref["hizb"] != hizb_of[g1]:
                 hizb_diffs.append(f"- الفائدة {f['id']} ({s}:{a}): الحزب في الملف {ref['hizb']}، وفي المصحف {hizb_of[g1]}")
@@ -156,14 +158,18 @@ def main():
                 ws = {w.replace("ا", "") for w in plain(hafs[g - 1]["aya_text_emlaey"]).split()}
                 return sum(w in ws for w in words) / len(words)
             best = max(range(1, 6237), key=score)
-            where = (f"{hafs[best-1]['sora']}:{hafs[best-1]['aya_no']}" if score(best) >= 0.8
-                     else "لم يُعثر عليه بلفظه")
-            quote_misses.append(f"- الفائدة {f['id']}: «{q.strip()[:70]}» ليس من الآيات المربوطة؛ أقرب موضع: {where}")
+            check(score(best) >= 0.8, f"الفائدة {f['id']}: لم يُعثر على «{q.strip()[:50]}»")
+            if score(best) < 0.8:
+                continue
+            target |= {w.replace("ا", "") for w in plain(hafs[best - 1]["aya_text_emlaey"]).split()}
+            # الفائدة تظهر أيضًا تحت الآية المستشهد بها
+            con.execute("INSERT OR IGNORE INTO entry_ayat VALUES (?,?,?,?,?)", (f["id"], best, best, None, "cited"))
+            quote_misses.append(f"- الفائدة {f['id']}: «{q.strip()[:70]}» ← {hafs[best-1]['sora_name_ar']} {hafs[best-1]['aya_no']}")
 
     report += ["## الأحزاب", ""] + (hizb_diffs or ["كل أرقام الأحزاب في الملف تطابق المصحف."]) + [""]
-    report += ["## آيات أخرى مستشهد بها داخل الفوائد", "",
-               "كل اقتباس بين ﴿ ﴾ قورن بالآيات المربوطة بفائدته. ما يلي اقتباسات من آيات أخرى، "
-               "وأغلبها استشهاد مقصود (يفيد لاحقًا في «آيات ذات صلة»)، لا خطأ في الربط.", ""] + (quote_misses or ["لا شيء."]) + [""]
+    report += ["## آيات مستشهد بها داخل الفوائد", "",
+               "كل آية مقتبسة بين ﴿ ﴾ من غير الآيات الأصلية للفائدة رُبطت بها الفائدة أيضًا (role = cited)، "
+               "فتظهر الفائدة تحتها كذلك.", ""] + (quote_misses or ["لا شيء."]) + [""]
     REPORT.write_text("\n".join(report), encoding="utf-8")
 
     con.commit()
@@ -177,7 +183,7 @@ def main():
     con.close()
     print(f"الآيات: {n_ayat} | الفوائد: {n_entries} | روابط: {n_links} | آيات لها فوائد: {n_with} | "
           f"آيات تنتظر: {n_ayat - n_with}")
-    print(f"فروق الأحزاب: {len(hizb_diffs)} | آيات مستشهد بها: {len(quote_misses)}")
+    print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")
         sys.exit(1)

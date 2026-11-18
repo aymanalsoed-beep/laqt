@@ -107,6 +107,8 @@ CREATE TABLE entry_ayat (
   first_ayah_id  INTEGER NOT NULL REFERENCES ayat(id),
   last_ayah_id   INTEGER NOT NULL REFERENCES ayat(id),
   placement      TEXT,     -- NULL: تحت الآية | intro: مقدمة السورة | surah-end: آخر السورة | after-range: بعد المقطع
+  role           TEXT NOT NULL DEFAULT 'primary'
+                 CHECK (role IN ('primary','cited')), -- primary: موضع الفائدة الأصلي | cited: آية مستشهد بها فيها
   PRIMARY KEY (entry_id, first_ayah_id, last_ayah_id),
   CHECK (last_ayah_id >= first_ayah_id)
 );
@@ -130,7 +132,7 @@ FROM ayat a;
 
 -- المواد مع مواضعها بصيغة مقروءة (سورة:آية-آية)
 CREATE VIEW entry_locations AS
-SELECT e.id AS entry_id, e.kind, e.status, ea.placement,
+SELECT e.id AS entry_id, e.kind, e.status, ea.placement, ea.role,
        af.surah_id, af.number AS ayah_from, al.number AS ayah_to,
        ea.first_ayah_id, ea.last_ayah_id
 FROM entries e
