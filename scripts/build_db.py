@@ -202,6 +202,8 @@ def main():
         check(e.get("status") in STATUSES, f"{where}: حالة غير معروفة {e.get('status')}")
         check(bool((e.get("body") or "").strip()), f"{where}: نص فارغ")
         check(bool(e.get("locations")), f"{where}: لا موضع لها")
+        check(not e.get("source_url") or re.match(r"https?://[^\s<>\"]+$", e["source_url"]),
+              f"{where}: رابط المصدر غير صالح")
         if not (isinstance(eid, int) and eid not in seen_ids and e.get("kind") in kinds
                 and e.get("status") in STATUSES):
             continue
@@ -211,10 +213,11 @@ def main():
             title = e["source"].strip()
             source_id = known_sources.get(title) or new_sources[title]
         con.execute(
-            "INSERT INTO entries (id, kind, title, body, source_id, source_ref, status, origin, legacy_id,"
+            "INSERT INTO entries (id, kind, title, body, source_id, source_ref, source_url, status, origin, legacy_id,"
             " legacy_msg, edits, flags, sort_order, created_at, updated_at)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,coalesce(?, datetime('now')),coalesce(?, datetime('now')))",
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,coalesce(?, datetime('now')),coalesce(?, datetime('now')))",
             (eid, e["kind"], e.get("title") or None, e["body"].strip(), source_id, e.get("source_ref") or None,
+             e.get("source_url") or None,
              e["status"], e.get("origin"), e.get("legacy_id"), e.get("legacy_msg"),
              json.dumps(e.get("edits") or [], ensure_ascii=False),
              json.dumps(e.get("flags") or [], ensure_ascii=False),

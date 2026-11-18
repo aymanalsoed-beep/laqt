@@ -88,6 +88,7 @@ CREATE TABLE entries (
   body          TEXT NOT NULL,
   source_id     INTEGER REFERENCES sources(id),
   source_ref    TEXT,                     -- الجزء والصفحة كما ورد
+  source_url    TEXT,                     -- رابط النص في مكتبة رقمية (تراث، الشاملة...)
   status        TEXT NOT NULL DEFAULT 'draft'
                 CHECK (status IN ('draft','needs_review','ready','published')),
   origin        TEXT,                     -- من أين جاء النص: user / image / chatgpt

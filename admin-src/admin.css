@@ -78,7 +78,7 @@ h1 { font-size: 1.9rem; } h2 { font-size: 1.5rem; } h3 { font-size: 1.3rem; }
 .field { display: flex; flex-direction: column; gap: .2rem; margin-bottom: .9rem; }
 .field > span, .label-row > span:first-child, legend { font-weight: 600; color: var(--ink-2); font-size: 1.05rem; }
 .field em { font-style: normal; color: var(--ink-3); font-weight: 400; }
-input[type=text], input[type=search], input[type=number], input[type=password], select, textarea {
+input[type=text], input[type=url], input[type=search], input[type=number], input[type=password], select, textarea {
   font: inherit; font-size: 1.1rem; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: .35rem .7rem; width: 100%; min-width: 0;
 }
 textarea { line-height: 1.8; resize: vertical; min-height: 12rem; }

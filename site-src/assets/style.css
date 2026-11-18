@@ -356,3 +356,5 @@ mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 .1e
 /* بطاقة مصدر في المعنى الإجمالي */
 .entry-src { margin: 0 0 .3rem; font-weight: 600; color: var(--green); font-size: .95rem; }
 .panel-loading p { margin: 0; color: var(--ink-3); font-size: .95rem; padding: .4rem 0; }
+.source-link { color: var(--green); white-space: nowrap; }
+.source-link::after { content: " ↗"; font-size: .85em; }
