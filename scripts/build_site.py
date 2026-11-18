@@ -24,6 +24,12 @@ ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "db" / "laqt.db"
 SRC = ROOT / "site-src"
 CONFIG = json.loads((ROOT / "scripts" / "site_config.json").read_text(encoding="utf-8"))
+# أسماء المكتبات الرقمية لرابط «اقرأه في ...» بجانب المصدر
+SOURCE_LIBRARIES = {
+    "turath.io": "تراث", "shamela.ws": "المكتبة الشاملة", "dorar.net": "الدرر السنية",
+    "islamweb.net": "إسلام ويب", "waqfeya.net": "المكتبة الوقفية", "archive.org": "أرشيف الإنترنت",
+    "ketabonline.com": "كتاب أونلاين", "quranenc.com": "موسوعة القرآن الكريم",
+}
 
 AR_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 EN_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
@@ -168,8 +174,21 @@ class Site:
         return f'<div class="entry-body">{self.linkify(body, prefix)}</div>'
 
     def source_html(self, e) -> str:
-        parts = [p for p in (e.get("source_author"), e.get("source_title"), e.get("source_ref")) if p]
-        return f'<p class="entry-source">المصدر: {esc("، ".join(parts))}</p>' if parts else ""
+        """سطر المصدر. إن كان للمادة رابط في مكتبة رقمية صار اسم الكتاب نفسه رابطًا إليها."""
+        url = e.get("source_url") or ""
+        url = url if re.match(r"https?://[^\s<>\"]+$", url) else ""
+        title = e.get("source_title") or ""
+        if not (title or url or e.get("source_ref")):
+            return ""
+        if url:
+            host = re.sub(r"^https?://(www\.)?", "", url).split("/")[0].lower()
+            lib = next((n for d, n in SOURCE_LIBRARIES.items() if host == d or host.endswith("." + d)), "مصدره")
+            title = (f'<a class="source-link" href="{esc(url)}" target="_blank" rel="noopener" '
+                     f'title="افتح الموضع في {esc(lib)}">{esc(title or "الكتاب")}</a>')
+        else:
+            title = esc(title)
+        parts = [p for p in (esc(e.get("source_author") or ""), title, esc(e.get("source_ref") or "")) if p]
+        return f'<p class="entry-source">المصدر: {"، ".join(parts)}</p>'
 
     # ---------------------------------------------------------- القالب
 

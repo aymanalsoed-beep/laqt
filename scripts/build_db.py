@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 DB = ROOT / "db" / "laqt.db"
 SCHEMA = ROOT / "db" / "schema.sql"
-REPORT = ROOT / "data" / "fawaid" / "link_report.md"
+REPORT = ROOT / "data" / "entries_report.md"
+STATUSES = ("draft", "needs_review", "ready", "published")
+PLACEMENTS = (None, "intro", "surah-end", "after-range")
 
 errors = []
 
@@ -56,8 +58,6 @@ def import_tafsir(con, gid_of):
     (تسمية السورة ومقاصدها) يُترك لأنه ليس من نص التفسير الميسر المطبوع."""
     counts = {}
     for src in TAFSIR_SOURCES:
-        con.execute("INSERT INTO sources (id, title, author, edition, notes) VALUES (?,?,?,?,?)",
-                    (src["id"], src["title"], src["author"], src["edition"], src["notes"]))
         n = 0
         for sura in range(1, 115):
             rows = json.loads((DATA / "sources/tafsir" / src["dir"] / f"{sura}.json").read_text(encoding="utf-8"))
@@ -88,7 +88,11 @@ def import_tafsir(con, gid_of):
 def main():
     hafs = json.loads((DATA / "sources/kfgqpc/hafsData_v18.json").read_text(encoding="utf-8"))
     lists = json.loads((DATA / "sources/quran-meta/hafs_lists.json").read_text(encoding="utf-8"))
-    fawaid = json.loads((DATA / "fawaid/initial_fawaid.json").read_text(encoding="utf-8"))
+    entries = []
+    for f in sorted((DATA / "entries").glob("*.json")):
+        e = json.loads(f.read_text(encoding="utf-8"))
+        e["_file"] = f.name
+        entries.append(e)
 
     check(len(hafs) == 6236, f"عدد الآيات {len(hafs)} وليس 6236")
 
@@ -170,35 +174,74 @@ def main():
           [f"{hafs[g-1]['sora']}:{hafs[g-1]['aya_no']}" for g in meta_diff])
     check(set(juzs[1:-1]) <= rub_starts | set(meta_diff), "بدايات الأجزاء ليست بدايات أرباع")
 
-    # --- الفوائد ---
+    # --- المواد المحررة: الفوائد وغيرها، ملف لكل مادة في data/entries/ ---
+    # هذه الملفات هي ما تكتبه «لوحة الإدخال» (admin/)، وهي مصدر المواد الوحيد بعد المصحف.
     gid_of = {(r["sora"], r["aya_no"]): i for i, r in enumerate(hafs, 1)}
-    hizb_of = {i: (bucket(rubs, i) - 1) // 4 + 1 for i in range(1, 6237)}
-    report = ["# تقرير ربط الفوائد بالآيات", "",
-              f"عدد الفوائد: {len(fawaid)}", ""]
-    hizb_diffs, quote_misses = [], []
-    for order, f in enumerate(fawaid, 1):
-        flags = list(f["flags"])
-        # راجع صاحب المشروع الفوائد كلها (2026-11-18)، وتبقى الملاحظات للتوثيق
-        status = "ready"
+    kinds = {k for (k,) in con.execute("SELECT id FROM content_kinds")}
+    # المراجع: مصدرا المعنى الإجمالي بأرقامهما، ثم ما يُكتب في حقل «المصدر» من 101 فصاعدًا
+    for src in TAFSIR_SOURCES:
+        con.execute("INSERT INTO sources (id, title, author, edition, notes) VALUES (?,?,?,?,?)",
+                    (src["id"], src["title"], src["author"], src["edition"], src["notes"]))
+    known_sources = {s["title"]: s["id"] for s in TAFSIR_SOURCES}
+    new_sources = {}
+    for e in entries:
+        title = (e.get("source") or "").strip()
+        if title and title not in known_sources and title not in new_sources:
+            new_sources[title] = 101 + len(new_sources)
+            con.execute("INSERT INTO sources (id, title) VALUES (?,?)", (new_sources[title], title))
+    report = ["# تقرير ربط المواد بالآيات", "",
+              f"عدد المواد في data/entries: {len(entries)}"
+              f" (منها {sum(e['kind'] == 'faida' for e in entries)} فائدة)", ""]
+    quote_misses = []
+    seen_ids = set()
+    for e in entries:
+        eid = e.get("id")
+        where = f"المادة {eid} ({e.get('_file')})"
+        check(isinstance(eid, int) and eid > 0 and eid not in seen_ids, f"{where}: رقم مفقود أو مكرر")
+        check(e.get("kind") in kinds, f"{where}: نوع غير معروف {e.get('kind')}")
+        check(e.get("status") in STATUSES, f"{where}: حالة غير معروفة {e.get('status')}")
+        check(bool((e.get("body") or "").strip()), f"{where}: نص فارغ")
+        check(bool(e.get("locations")), f"{where}: لا موضع لها")
+        check(not e.get("source_url") or re.match(r"https?://[^\s<>\"]+$", e["source_url"]),
+              f"{where}: رابط المصدر غير صالح")
+        if not (isinstance(eid, int) and eid not in seen_ids and e.get("kind") in kinds
+                and e.get("status") in STATUSES):
+            continue
+        seen_ids.add(eid)
+        source_id = None
+        if e.get("source"):
+            title = e["source"].strip()
+            source_id = known_sources.get(title) or new_sources[title]
         con.execute(
-            "INSERT INTO entries (id, kind, body, status, origin, legacy_id, legacy_msg, edits, flags, sort_order)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (f["id"], "faida", f["text"], status, f["origin"], f["id"], f["source_message"],
-             json.dumps(f["edits"], ensure_ascii=False), json.dumps(flags, ensure_ascii=False), order))
+            "INSERT INTO entries (id, kind, title, body, source_id, source_ref, source_url, status, origin, legacy_id,"
+            " legacy_msg, edits, flags, sort_order, created_at, updated_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,coalesce(?, datetime('now')),coalesce(?, datetime('now')))",
+            (eid, e["kind"], e.get("title") or None, e["body"].strip(), source_id, e.get("source_ref") or None,
+             e.get("source_url") or None,
+             e["status"], e.get("origin"), e.get("legacy_id"), e.get("legacy_msg"),
+             json.dumps(e.get("edits") or [], ensure_ascii=False),
+             json.dumps(e.get("flags") or [], ensure_ascii=False),
+             e.get("sort_order", eid), e.get("created_at"), e.get("updated_at")))
         ref_ayat = []
-        for ref in f["refs"]:
-            s, a, b = ref["sura"], ref["from_"], ref["to"]
-            check((s, a) in gid_of and (s, b) in gid_of, f"الفائدة {f['id']}: موضع غير موجود {s}:{a}-{b}")
-            if (s, a) not in gid_of or (s, b) not in gid_of:
+        for loc in e.get("locations") or []:
+            s, a, b = loc.get("surah"), loc.get("from"), loc.get("to", loc.get("from"))
+            ok = (s, a) in gid_of and (s, b) in gid_of and b >= a
+            check(ok, f"{where}: موضع غير صحيح {s}:{a}-{b}")
+            check(loc.get("placement") in PLACEMENTS, f"{where}: مكان عرض غير معروف {loc.get('placement')}")
+            if not ok:
                 continue
             g1, g2 = gid_of[(s, a)], gid_of[(s, b)]
-            con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)", (f["id"], g1, g2, f["place"], "primary"))
-            ref_ayat.extend(range(g1, g2 + 1))
-            if ref.get("hizb") and ref["hizb"] != hizb_of[g1]:
-                hizb_diffs.append(f"- الفائدة {f['id']} ({s}:{a}): الحزب في الملف {ref['hizb']}، وفي المصحف {hizb_of[g1]}")
+            role = loc.get("role") or "primary"
+            check(role in ("primary", "cited"), f"{where}: دور غير معروف {role}")
+            con.execute("INSERT OR IGNORE INTO entry_ayat VALUES (?,?,?,?,?)",
+                        (eid, g1, g2, loc.get("placement"), role))
+            if role == "primary":
+                ref_ayat.extend(range(g1, g2 + 1))
+        if e["kind"] != "faida":
+            continue
         # تحقق: هل الآيات المقتبسة بين ﴿ ﴾ موجودة في الآيات المربوطة؟
         target = {w.replace("ا", "") for g in ref_ayat for w in plain(hafs[g - 1]["aya_text_emlaey"]).split()}
-        for q in re.findall(r"﴿([^﴾]+)﴾", f["text"]):
+        for q in re.findall(r"﴿([^﴾]+)﴾", e["body"]):
             words = [w.replace("ا", "") for w in plain(q).split()]
             words = [w for w in words if w]
             if len(words) < 2 or sum(w in target for w in words) / len(words) >= 0.8:
@@ -207,15 +250,17 @@ def main():
                 ws = {w.replace("ا", "") for w in plain(hafs[g - 1]["aya_text_emlaey"]).split()}
                 return sum(w in ws for w in words) / len(words)
             best = max(range(1, 6237), key=score)
-            check(score(best) >= 0.8, f"الفائدة {f['id']}: لم يُعثر على «{q.strip()[:50]}»")
+            # فائدة قديمة لم يُعثر على اقتباسها خطأ في البيانات؛ وفي المواد الجديدة يكفي التنبيه
+            if e.get("legacy_id"):
+                check(score(best) >= 0.8, f"{where}: لم يُعثر على «{q.strip()[:50]}»")
             if score(best) < 0.8:
+                quote_misses.append(f"- {where}: لم يُعثر في المصحف على «{q.strip()[:70]}»")
                 continue
             target |= {w.replace("ا", "") for w in plain(hafs[best - 1]["aya_text_emlaey"]).split()}
             # الفائدة تظهر أيضًا تحت الآية المستشهد بها
-            con.execute("INSERT OR IGNORE INTO entry_ayat VALUES (?,?,?,?,?)", (f["id"], best, best, None, "cited"))
-            quote_misses.append(f"- الفائدة {f['id']}: «{q.strip()[:70]}» ← {hafs[best-1]['sora_name_ar']} {hafs[best-1]['aya_no']}")
+            con.execute("INSERT OR IGNORE INTO entry_ayat VALUES (?,?,?,?,?)", (eid, best, best, None, "cited"))
+            quote_misses.append(f"- {where}: «{q.strip()[:70]}» ← {hafs[best-1]['sora_name_ar']} {hafs[best-1]['aya_no']}")
 
-    report += ["## الأحزاب", ""] + (hizb_diffs or ["كل أرقام الأحزاب في الملف تطابق المصحف."]) + [""]
     report += ["## آيات مستشهد بها داخل الفوائد", "",
                "كل آية مقتبسة بين ﴿ ﴾ من غير الآيات الأصلية للفائدة رُبطت بها الفائدة أيضًا (role = cited)، "
                "فتظهر الفائدة تحتها كذلك.", ""] + (quote_misses or ["لا شيء."]) + [""]
@@ -236,7 +281,7 @@ def main():
     print(f"الآيات: {n_ayat} | الفوائد: {n_entries} | روابط: {n_links} | آيات لها فوائد: {n_with} | "
           f"آيات تنتظر: {n_ayat - n_with}")
     print("المعنى الإجمالي: " + " | ".join(f"{k}: {v} مقطعًا" for k, v in n_tafsir.items()))
-    print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
+    print(f"روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")
         sys.exit(1)

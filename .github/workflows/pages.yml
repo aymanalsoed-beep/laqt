@@ -1,4 +1,5 @@
-# يبني موقع «لقط» من قاعدة البيانات وينشره على GitHub Pages عند كل دفع إلى main.
+# يبني قاعدة «لقط» من data/ ثم الموقع ولوحة الإدخال، وينشرها على GitHub Pages عند كل دفع إلى main.
+# ولوحة الإدخال (admin/) تحفظ في data/entries/ على main، فكل حفظ منها يشغّل هذا النشر.
 name: نشر الموقع
 
 on:
@@ -23,8 +24,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: بناء القاعدة من data/
+        run: python3 scripts/build_db.py
       - name: بناء الموقع
         run: python3 scripts/build_site.py --out _site
+      - name: بناء لوحة الإدخال
+        run: python3 scripts/build_admin.py --out _site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
