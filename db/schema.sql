@@ -66,7 +66,7 @@ CREATE TABLE rubs (
 
 -- أنواع المحتوى؛ كل نوع يصير تبويبًا تحت الآية في الموقع
 CREATE TABLE content_kinds (
-  id          TEXT PRIMARY KEY,           -- faida, tafsir, irab, ...
+  id          TEXT PRIMARY KEY,           -- qiraat, maana, tafsir, irab, faida, ...
   name_ar     TEXT NOT NULL,
   sort_order  INTEGER NOT NULL
 );
@@ -123,11 +123,15 @@ CREATE INDEX entry_ayat_first ON entry_ayat(first_ayah_id);
 CREATE VIEW ayah_overview AS
 SELECT a.id, a.surah_id, a.number, a.page, a.juz, a.hizb, a.rub,
   (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
-     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'faida')  AS fawaid,
+     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'qiraat') AS qiraat,
+  (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
+     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'maana')  AS maana,
   (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
      WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'tafsir') AS tafsir,
   (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
-     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'irab')   AS irab
+     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'irab')   AS irab,
+  (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
+     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'faida')  AS fawaid
 FROM ayat a;
 
 -- المواد مع مواضعها بصيغة مقروءة (سورة:آية-آية)
