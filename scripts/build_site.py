@@ -43,6 +43,13 @@ def count_word(n: int) -> str:
     return f"{ar(n)} {'فوائد' if 3 <= n % 100 <= 10 else 'فائدة'}"
 
 
+def verse_html(cls: str) -> str:
+    """البيت الشعري بشطريه، كما يُكتب الشعر: صدر وعجز متقابلان."""
+    sadr, ajz = CONFIG["tagline"]
+    return (f'<p class="verse {cls}"><span class="shatr">{html.escape(sadr)}</span>'
+            f'<span class="shatr">{html.escape(ajz)}</span></p>')
+
+
 def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
@@ -92,6 +99,8 @@ class Site:
 
         # مواضع العرض: تحت آية، أو مقدمة السورة، أو آخرها
         self.under = defaultdict(lambda: defaultdict(list))   # ayah_id -> kind -> [(entry, link)]
+        self.lazy_kinds = set(CONFIG.get("lazy_kinds", []))
+        self.lazy = defaultdict(lambda: defaultdict(list))    # ما يُحمَّل من assets/<kind>/<سورة>.json
         self.intro = defaultdict(list)                         # surah_id -> [(entry, link)]
         self.end = defaultdict(list)
         self.entry_links = defaultdict(list)                   # entry_id -> [link]
@@ -104,8 +113,13 @@ class Site:
             elif l["placement"] == "surah-end":
                 self.end[sid].append((e, l))
             else:
-                # المقطع يُعرض تحت آخر آية فيه
-                self.under[l["last_ayah_id"]][e["kind"]].append((e, l))
+                if e["kind"] in self.lazy_kinds:
+                    # المعنى الإجمالي: يظهر تحت كل آية من المقطع، ويُحمَّل عند فتح الخانة
+                    for g in range(l["first_ayah_id"], l["last_ayah_id"] + 1):
+                        self.lazy[g][e["kind"]].append((e, l))
+                else:
+                    # المقطع يُعرض تحت آخر آية فيه
+                    self.under[l["last_ayah_id"]][e["kind"]].append((e, l))
 
         # أسماء السور للروابط داخل النصوص: [البقرة: ٦١]
         self.surah_by_name = {}
@@ -176,7 +190,7 @@ class Site:
 <link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Markazi+Text:wght@400;500;600;700&display=swap">
 <link rel="preload" href="{prefix}assets/fonts/hafs.18.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{prefix}assets/style.css">
 </head>
@@ -203,7 +217,7 @@ class Site:
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p class="footer-tag">«{esc(CONFIG['tagline'])}»</p>
+    {verse_html("footer-tag")}
     <p>نص المصحف برواية حفص عن عاصم من <a href="https://qurancomplex.gov.sa/techquran/dev/">مجمع الملك فهد لطباعة المصحف الشريف</a> (الإصدار ١٨)، ويُعرض بخطه.
     التلاوة: {esc(CONFIG['audio']['name'])}.</p>
   </div>
@@ -247,7 +261,7 @@ class Site:
   <div class="wrap">
     <h1 class="hero-logo"><span class="logo logo-xl"><span class="logo-word">لُقَط</span></span></h1>
     <p class="hero-title">{esc(CONFIG['site_subtitle'])}</p>
-    <p class="hero-tag">«{esc(CONFIG['tagline'])}»</p>
+    {verse_html("hero-tag")}
     <form class="hero-search" action="search.html" role="search">
       <input type="search" name="q" placeholder="ابحث في الآيات والفوائد، أو اكتب: البقرة ٢٥٥" aria-label="البحث">
       <button type="submit">بحث</button>
@@ -292,6 +306,9 @@ class Site:
             tools = (f'<div class="entry-tools"><a class="btn-ghost" href="{prefix}faida/{e["id"]}.html">'
                      f'رابط الفائدة</a><button class="btn-ghost share" data-url="faida/{e["id"]}.html" '
                      f'type="button">مشاركة</button></div>')
+        if e["kind"] != "faida" and e.get("source_title"):
+            src = f'<p class="entry-src">{esc(e["source_title"])}</p>'
+            return (f'<article class="entry entry-{e["kind"]}">{src}{note}{self.body_html(e, prefix)}</article>')
         return (f'<article class="entry entry-{e["kind"]}" id="f{e["id"]}-{l["first_ayah_id"]}">'
                 f'{note}{self.body_html(e, prefix)}{self.source_html(e)}{tools}</article>')
 
@@ -300,15 +317,17 @@ class Site:
         default = CONFIG["default_open_kind"]
         tabs, panels = [], []
         open_kind = default if content.get(default) else None
+        lazy = self.lazy.get(a["id"], {})
         for k in self.kinds:
             items = content.get(k["id"], [])
-            n = len(items)
+            n = len(items) or len(lazy.get(k["id"], []))
             is_open = k["id"] == open_kind
             cls = "slot" + ("" if n else " empty") + (" active" if is_open else "")
             count = f'<span class="slot-count">{ar(n)}</span>' if n else ""
-            tabs.append(f'<button type="button" class="{cls}" data-kind="{k["id"]}" '
+            lz = " data-lazy" if lazy.get(k["id"]) else ""
+            tabs.append(f'<button type="button" class="{cls}" data-kind="{k["id"]}"{lz} '
                         f'aria-expanded="{"true" if is_open else "false"}">{esc(k["name_ar"])}{count}</button>')
-            if n:
+            if items:
                 cards = "".join(self.entry_card(e, l, prefix) for e, l in items)
                 panels.append(f'<div class="panel" data-kind="{k["id"]}"{"" if is_open else " hidden"}>{cards}</div>')
         has = " has-content" if content else ""
@@ -343,6 +362,17 @@ class Site:
             if a["id"] == 1 or self.ayah[a["id"] - 1]["juz"] != a["juz"]:
                 parts.append(f'<div class="juz-mark"><span>بداية الجزء {ar(a["juz"])}</span></div>')
             parts.append(self.ayah_html(a, prefix))
+        for kind in self.lazy_kinds:
+            data = {}
+            for a in ayat:
+                items = sorted(self.lazy[a["id"]].get(kind, []), key=lambda x: (x[0]["sort_order"], x[0]["id"]))
+                if items:
+                    data[a["number"]] = [[e.get("source_title") or "", e["body"].strip(),
+                                          "" if l["first_ayah_id"] == l["last_ayah_id"] else self.ref(l, False)]
+                                         for e, l in items]
+            p = self.out / "assets" / kind / f"{sid}.json"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         basmala = ""
         if sid not in (1, 9):
             basmala = f'<p class="basmala quran">{esc(self.ayah[1]["text_uthmani"])}</p>'

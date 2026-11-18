@@ -76,6 +76,15 @@
 
   function initSurah(page) {
     var tpl = $("#empty-panel");
+    var sid = page.getAttribute("data-surah"), lazyCache = {};
+    function loadLazy(kind) {
+      if (!lazyCache[kind]) lazyCache[kind] = fetch(prefix + "assets/" + kind + "/" + sid + ".json").then(function (r) {
+        if (!r.ok) throw new Error(r.status); return r.json();
+      }).catch(function (e) { delete lazyCache[kind]; throw e; });
+      return lazyCache[kind];
+    }
+    function escH(t) { return t.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function quranSpans(h) { return h.replace(/﴿[^﴿﴾\n]{1,400}﴾/g, function (m) { return '<span class="qv">' + m + "</span>"; }); }
 
     // الخانات: فتح وطي
     page.addEventListener("click", function (ev) {
@@ -90,7 +99,22 @@
       slot.classList.add("active");
       slot.setAttribute("aria-expanded", "true");
       var panel = $('.panel[data-kind="' + kind + '"]', ayah);
-      if (!panel) {
+      if (!panel && slot.hasAttribute("data-lazy")) {
+        panel = document.createElement("div");
+        panel.className = "panel panel-loading";
+        panel.setAttribute("data-kind", kind);
+        panel.innerHTML = "<p>جارٍ التحميل…</p>";
+        ayah.appendChild(panel);
+        loadLazy(kind).then(function (data) {
+          var items = data[ayah.getAttribute("data-n")] || [];
+          panel.className = "panel";
+          panel.innerHTML = items.map(function (it) {
+            return '<article class="entry entry-' + kind + '">' + (it[0] ? '<p class="entry-src">' + escH(it[0]) + "</p>" : "") +
+              (it[2] ? '<p class="entry-note">على الآيات ' + escH(it[2]) + ".</p>" : "") +
+              '<div class="entry-body">' + quranSpans(escH(it[1])) + "</div></article>";
+          }).join("");
+        }, function () { panel.innerHTML = "<p>تعذّر التحميل، فأعد المحاولة.</p>"; panel.remove(); toast("تعذّر التحميل"); });
+      } else if (!panel) {
         panel = tpl.content.firstElementChild.cloneNode(true);
         panel.setAttribute("data-kind", kind);
         $(".k", panel).textContent = slot.firstChild.textContent.trim();

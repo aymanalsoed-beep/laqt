@@ -38,6 +38,53 @@ def plain(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+# مصادر المعنى الإجمالي. النص من بيانات QUL (https://qul.tarteel.ai) عبر
+# github.com/spa5k/tafsir_api، وطوبق بنسختيهما في تراث (الكتابان 1407 و18102).
+TAFSIR_SOURCES = [
+    {"dir": "muyassar", "id": 1, "title": "التفسير الميسر",
+     "author": "نخبة من أساتذة التفسير", "edition": "مجمع الملك فهد لطباعة المصحف الشريف",
+     "notes": "QUL tafsir 38؛ يطابق ط2 (1430هـ) في تراث، الكتاب 1407"},
+    {"dir": "mukhtasar", "id": 2, "title": "المختصر في تفسير القرآن الكريم",
+     "author": "جماعة من علماء التفسير", "edition": "مركز تفسير للدراسات القرآنية",
+     "notes": "QUL tafsir 251؛ يطابق ط3 في تراث، الكتاب 18102"},
+]
+
+
+def import_tafsir(con, gid_of):
+    """يستورد المصدرين إلى entries بنوع maana. الآيات التي يجمعها المصدر في شرح واحد
+    تُحفظ مادةً واحدة مربوطة بالمقطع كله. وما يسبق «[التفسير]» في أول السورة
+    (تسمية السورة ومقاصدها) يُترك لأنه ليس من نص التفسير الميسر المطبوع."""
+    counts = {}
+    for src in TAFSIR_SOURCES:
+        con.execute("INSERT INTO sources (id, title, author, edition, notes) VALUES (?,?,?,?,?)",
+                    (src["id"], src["title"], src["author"], src["edition"], src["notes"]))
+        n = 0
+        for sura in range(1, 115):
+            rows = json.loads((DATA / "sources/tafsir" / src["dir"] / f"{sura}.json").read_text(encoding="utf-8"))
+            check(len(rows) == len([1 for (s, _) in gid_of if s == sura]) and
+                  all(r["surah"] == sura and r["ayah"] == i for i, r in enumerate(rows, 1)),
+                  f"{src['title']}: آيات سورة {sura} ناقصة أو غير مرتبة")
+            groups = []
+            for r in rows:
+                text = r["text"].strip()
+                if "[التفسير]" in text:
+                    text = text.split("[التفسير]", 1)[1].strip()
+                check(bool(text), f"{src['title']}: نص فارغ في {sura}:{r['ayah']}")
+                if groups and groups[-1][2] == text:
+                    groups[-1][1] = r["ayah"]
+                else:
+                    groups.append([r["ayah"], r["ayah"], text])
+            for a, b, text in groups:
+                cur = con.execute(
+                    "INSERT INTO entries (kind, body, source_id, status, origin, sort_order) VALUES (?,?,?,?,?,?)",
+                    ("maana", text, src["id"], "published", "qul", src["id"]))
+                con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)",
+                            (cur.lastrowid, gid_of[(sura, a)], gid_of[(sura, b)], None, "primary"))
+                n += 1
+        counts[src["title"]] = n
+    return counts
+
+
 def main():
     hafs = json.loads((DATA / "sources/kfgqpc/hafsData_v18.json").read_text(encoding="utf-8"))
     lists = json.loads((DATA / "sources/quran-meta/hafs_lists.json").read_text(encoding="utf-8"))
@@ -174,17 +221,21 @@ def main():
                "فتظهر الفائدة تحتها كذلك.", ""] + (quote_misses or ["لا شيء."]) + [""]
     REPORT.write_text("\n".join(report), encoding="utf-8")
 
+    # --- المعنى الإجمالي: التفسير الميسر والمختصر ---
+    n_tafsir = import_tafsir(con, gid_of)
+
     con.commit()
 
     # --- ملخص ---
     n_ayat = con.execute("SELECT count(*) FROM ayat").fetchone()[0]
     n_with = con.execute("SELECT count(*) FROM ayah_overview WHERE fawaid>0").fetchone()[0]
-    n_entries = con.execute("SELECT count(*) FROM entries").fetchone()[0]
+    n_entries = con.execute("SELECT count(*) FROM entries WHERE kind='faida'").fetchone()[0]
     n_links = con.execute("SELECT count(*) FROM entry_ayat").fetchone()[0]
     con.execute("VACUUM")
     con.close()
     print(f"الآيات: {n_ayat} | الفوائد: {n_entries} | روابط: {n_links} | آيات لها فوائد: {n_with} | "
           f"آيات تنتظر: {n_ayat - n_with}")
+    print("المعنى الإجمالي: " + " | ".join(f"{k}: {v} مقطعًا" for k, v in n_tafsir.items()))
     print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")

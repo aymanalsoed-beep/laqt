@@ -20,9 +20,14 @@
   --shadow: 0 1px 2px rgba(42, 36, 32, .06), 0 6px 20px -12px rgba(42, 36, 32, .25);
   --quran-size: 1.9rem;
   --radius: 14px;
-  --f-quran: "hafs18", "Amiri", serif;
-  --f-head: "Amiri", "Noto Naskh Arabic", serif;
-  --f-body: "Noto Naskh Arabic", "Amiri", serif;
+  --f-quran: "hafs18", "Markazi Text", serif;
+  --f-head: "Aref Ruqaa", "Markazi Text", serif;
+  --f-body: "Markazi Text", "Times New Roman", serif;
+  /* شريط الأخضر الغامق: الترويسة والواجهة والتذييل */
+  --band: #17463A;
+  --band-2: #1F5C4A;
+  --on-band: #F6F1E7;
+  --on-band-2: #CFE0D6;
   color-scheme: light;
 }
 
@@ -40,6 +45,10 @@
     --hl: rgba(201, 161, 90, .32);
     --line: #3A332C;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    --band: #0F2E26;
+    --band-2: #143A30;
+    --on-band: #EEE6D8;
+    --on-band-2: #A9C7B8;
     color-scheme: dark;
   }
 }
@@ -51,8 +60,8 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--f-body);
-  font-size: 1.06rem;
-  line-height: 1.95;
+  font-size: 1.22rem;
+  line-height: 1.85;
 }
 a { color: var(--green); text-decoration-color: color-mix(in srgb, var(--green) 35%, transparent); text-underline-offset: .25em; }
 a:hover { color: var(--green-2); }
@@ -211,7 +220,6 @@ button { font: inherit; color: inherit; }
 .slot-count { font-size: .75rem; background: var(--hl); color: var(--ink); border-radius: 999px; min-width: 1.35rem; text-align: center; padding: 0 .3rem; line-height: 1.5; }
 .slot.active .slot-count { background: rgba(255, 255, 255, .25); color: inherit; }
 body.hide-empty .slot.empty { display: none; }
-body.hide-empty .ayah:not(.has-content) .slots { display: none; }
 
 .panel { margin-top: .7rem; animation: fade .18s ease-out; }
 @keyframes fade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
@@ -303,3 +311,48 @@ mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 .1e
 .qv { font-family: var(--f-quran); font-size: 1.12em; color: var(--green); }
 .faida-where { margin: 1rem 0 0; font-size: .95rem; color: var(--ink-3); }
 .entry-tools .btn { font-size: .9rem; }
+
+/* ---------- لمسة الأخضر الغامق ---------- */
+.site-header { background: var(--band); border-bottom: 2px solid var(--gold); backdrop-filter: none; }
+.site-header .brand, .site-header .logo { color: var(--on-band); }
+.site-header .logo::before { background: color-mix(in srgb, var(--gold) 70%, transparent); }
+.brand-sub { color: var(--on-band-2); font-family: var(--f-head); }
+.main-nav a { color: var(--on-band-2); }
+.main-nav a:hover { background: rgba(255, 255, 255, .1); color: var(--on-band); }
+
+.hero { background: radial-gradient(ellipse at top, var(--band-2), var(--band) 70%); color: var(--on-band); border-bottom: 2px solid var(--gold); }
+.hero .logo { color: var(--on-band); }
+.hero .logo::before { background: color-mix(in srgb, var(--gold) 65%, transparent); }
+.hero-title { color: var(--gold); }
+.stats dt { color: var(--on-band-2); }
+.stats dd { color: var(--on-band); }
+.hero-search input { border-color: transparent; }
+.hero-search button { background: var(--gold); color: #1d1a16; }
+.hero-search button:hover { background: #d8b373; }
+.search-page .hero-search input { border-color: var(--line); }
+
+.verse { display: flex; justify-content: center; flex-wrap: wrap; gap: .2rem 2.6rem; font-family: var(--f-head); margin: .2rem 0 1.8rem; font-size: 1.35rem; line-height: 1.8; }
+.hero .verse { color: var(--on-band); }
+.footer-tag.verse { margin: 0 0 .6rem; font-size: 1.2rem; }
+@media (max-width: 640px) { .verse { flex-direction: column; align-items: center; } }
+
+.surah-head { background: var(--band); color: var(--on-band); padding-bottom: 1.4rem; }
+.surah-head .crumbs, .surah-head .crumbs a { color: var(--on-band-2); }
+.surah-meta { color: var(--on-band-2); }
+.surah-name { color: var(--on-band); }
+.toolbar { border-top: 2px solid var(--gold); }
+
+.ayah-ref { background: var(--green); color: var(--paper); border-color: var(--green); }
+.sc-num { background: var(--green); color: var(--paper); border-color: var(--green); }
+.surah-card a:hover .sc-num { background: var(--gold); border-color: var(--gold); color: #1d1a16; }
+.ayah.has-content { border-inline-start: 3px solid var(--green); }
+.juz-mark { color: var(--green); }
+.juz-mark::before, .juz-mark::after { background: linear-gradient(to left, transparent, var(--green), transparent); }
+
+.site-footer { background: var(--band); color: var(--on-band-2); border-top: 2px solid var(--gold); }
+.site-footer a { color: var(--on-band); }
+.footer-tag { color: var(--on-band); }
+
+/* بطاقة مصدر في المعنى الإجمالي */
+.entry-src { margin: 0 0 .3rem; font-weight: 600; color: var(--green); font-size: .95rem; }
+.panel-loading p { margin: 0; color: var(--ink-3); font-size: .95rem; padding: .4rem 0; }

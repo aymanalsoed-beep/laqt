@@ -1,12 +1,23 @@
 {
   "site_title": "لُقَط",
   "site_subtitle": "الفوائد المنتقاة من كتاب الله",
-  "tagline": "لكلِّ ساقطةٍ لاقطة",
-  "public_statuses": ["ready", "published"],
-  "hidden_kinds": ["irab"],
+  "tagline": [
+    "لُقَطٌ مِنَ الذِّكْرِ الحَكِيمِ جَمَعْتُهَا",
+    "كَالدُّرِّ يُلْقَطُ مِنْ قَرَارِ الأَبْحُرِ"
+  ],
+  "public_statuses": [
+    "ready",
+    "published"
+  ],
+  "hidden_kinds": [
+    "irab"
+  ],
   "default_open_kind": "faida",
   "audio": {
     "name": "محمود خليل الحصري (مرتّل)",
     "url_pattern": "https://everyayah.com/data/Husary_128kbps/{sss}{aaa}.mp3"
-  }
+  },
+  "lazy_kinds": [
+    "maana"
+  ]
 }
