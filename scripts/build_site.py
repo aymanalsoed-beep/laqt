@@ -174,18 +174,21 @@ class Site:
         return f'<div class="entry-body">{self.linkify(body, prefix)}</div>'
 
     def source_html(self, e) -> str:
-        parts = [p for p in (e.get("source_author"), e.get("source_title"), e.get("source_ref")) if p]
+        """سطر المصدر. إن كان للمادة رابط في مكتبة رقمية صار اسم الكتاب نفسه رابطًا إليها."""
         url = e.get("source_url") or ""
-        link = ""
-        if re.match(r"https?://[^\s<>\"]+$", url):
+        url = url if re.match(r"https?://[^\s<>\"]+$", url) else ""
+        title = e.get("source_title") or ""
+        if not (title or url or e.get("source_ref")):
+            return ""
+        if url:
             host = re.sub(r"^https?://(www\.)?", "", url).split("/")[0].lower()
             lib = next((n for d, n in SOURCE_LIBRARIES.items() if host == d or host.endswith("." + d)), "مصدره")
-            link = (f'<a class="source-link" href="{esc(url)}" target="_blank" rel="noopener">'
-                    f'اقرأه في {esc(lib)}</a>')
-        if not parts and not link:
-            return ""
-        text = f"المصدر: {esc('، '.join(parts))}" if parts else ""
-        return f'<p class="entry-source">{text}{" " if text and link else ""}{link}</p>'
+            title = (f'<a class="source-link" href="{esc(url)}" target="_blank" rel="noopener" '
+                     f'title="افتح الموضع في {esc(lib)}">{esc(title or "الكتاب")}</a>')
+        else:
+            title = esc(title)
+        parts = [p for p in (esc(e.get("source_author") or ""), title, esc(e.get("source_ref") or "")) if p]
+        return f'<p class="entry-source">المصدر: {"، ".join(parts)}</p>'
 
     # ---------------------------------------------------------- القالب
 

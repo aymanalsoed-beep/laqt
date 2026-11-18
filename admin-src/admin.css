@@ -138,6 +138,8 @@ legend { padding: 0 .4rem; }
 .badge { font-size: .9rem; border-radius: 99px; padding: 0 .6rem; background: var(--pub-bg); color: var(--pub); font-weight: 600; }
 .badge.draft { background: var(--draft-bg); color: var(--draft); }
 .badge.pending { background: var(--paper-2); color: var(--ink-2); font-weight: 400; }
+.badge.auto { background: var(--draft-bg); color: var(--draft); font-weight: 400; }
+.auto-note { background: var(--draft-bg); color: var(--draft); border-radius: 10px; padding: .4rem .8rem; }
 .badge.kind-b { background: var(--paper-2); color: var(--ink-2); }
 .entry-body { white-space: pre-line; overflow-wrap: anywhere; }
 .qv { font-family: var(--f-quran); font-size: 1.12em; color: var(--green); }

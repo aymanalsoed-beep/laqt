@@ -12,8 +12,8 @@
       "placement": null
     }
   ],
-  "source": null,
-  "source_ref": null,
+  "source": "تيسير الكريم الرحمن",
+  "source_ref": "ص ٣٩",
   "sort_order": 3,
   "origin": "user",
   "legacy_id": 3,
@@ -21,5 +21,7 @@
   "edits": [],
   "flags": [],
   "created_at": "2026-11-17T00:00:00Z",
-  "updated_at": "2026-11-18T00:00:00Z"
+  "updated_at": "2026-11-18T00:00:00Z",
+  "source_url": "https://app.turath.io/book/42?page=30",
+  "source_auto": true
 }

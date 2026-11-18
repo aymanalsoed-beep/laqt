@@ -331,6 +331,7 @@
     meta.push(isPublic(e) ? '<span class="badge">منشورة</span>' : '<span class="badge draft">مسودة</span>');
     if (e._pending) meta.push(isPublic(e) ? '<span class="badge pending" title="حُفظت، وتظهر في الموقع بعد اكتمال النشر">تُنشر الآن</span>'
       : '<span class="badge pending">حُفظت للتو</span>');
+    if (e.source_auto) meta.push('<span class="badge auto" title="وجد Claude المصدر في مكتبة رقمية؛ افتح المادة وراجع الرابط">مصدر آلي: راجِعه</span>');
     if (opts.role === "cited") meta.push("<span>آية مستشهد بها فيها</span>");
     if (opts.showLoc) meta.push("<span>" + esc(locText(primaryLoc(e))) + "</span>");
     else if (opts.role !== "cited" && (e.locations || []).some(function (l) { return l.placement; }))
@@ -515,6 +516,7 @@
     $("#ed-source").value = e.source || "";
     $("#ed-source-ref").value = e.source_ref || "";
     $("#ed-source-url").value = e.source_url || "";
+    $("#ed-auto-note").hidden = !e.source_auto;
     $("#ed-locs").innerHTML = "";
     (e.locations && e.locations.length ? e.locations : [{ surah: cur.s, from: cur.n, to: cur.n }])
       .forEach(function (l) { $("#ed-locs").appendChild(locRow(l)); });
@@ -585,18 +587,18 @@
     var body = esc($("#ed-body").value.trim().replace(/\n{3,}/g, "\n\n"));
     body = body.replace(/\[[^\]\n]{2,30}?\]/g, function (m) { return '<span class="xref">' + m + "</span>"; })
       .replace(/﴿[^﴿﴾\n]{1,400}﴾/g, function (m) { return '<span class="qv">' + m + "</span>"; });
-    var src = [$("#ed-source").value.trim(), $("#ed-source-ref").value.trim()].filter(Boolean).join("، ");
-    var url = $("#ed-source-url").value.trim();
-    if (/^https?:\/\/[^\s<>"]+$/.test(url)) src += (src ? " " : "") + "↗ " + libName(url);
+    var url = $("#ed-source-url").value.trim(), t = esc($("#ed-source").value.trim());
+    if (/^https?:\/\/[^\s<>"]+$/.test(url)) t = '<a class="xref" href="' + esc(url) + '" target="_blank" rel="noopener" title="' + libName(url) + '">' + (t || "الكتاب") + "</a>";
+    var src = [t, esc($("#ed-source-ref").value.trim())].filter(Boolean).join("، ");
     $("#ed-preview").innerHTML = ($("#ed-title-in").value.trim() ? "<b>" + esc($("#ed-title-in").value.trim()) + "</b>\n" : "") +
-      (body || '<span class="muted">اكتب النص لتراه هنا كما سيظهر.</span>') + (src ? '\n<span class="muted">المصدر: ' + esc(src) + "</span>" : "");
+      (body || '<span class="muted">اكتب النص لتراه هنا كما سيظهر.</span>') + (src ? '\n<span class="muted">المصدر: ' + src + "</span>" : "");
   }
   function libName(url) {
     var host = url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0].toLowerCase();
     var L = { "turath.io": "تراث", "shamela.ws": "المكتبة الشاملة", "dorar.net": "الدرر السنية", "islamweb.net": "إسلام ويب",
       "waqfeya.net": "المكتبة الوقفية", "archive.org": "أرشيف الإنترنت", "ketabonline.com": "كتاب أونلاين" };
-    for (var d in L) if (host === d || host.slice(-d.length - 1) === "." + d) return "اقرأه في " + L[d];
-    return "اقرأه في مصدره";
+    for (var d in L) if (host === d || host.slice(-d.length - 1) === "." + d) return "افتح الموضع في " + L[d];
+    return "افتح الموضع في مصدره";
   }
   ["#ed-title-in", "#ed-source", "#ed-source-ref", "#ed-source-url"].forEach(function (s) { $(s).addEventListener("input", preview); });
 
@@ -633,6 +635,7 @@
       sort_order: o.sort_order != null ? o.sort_order : undefined,
     };
     Object.keys(o).forEach(function (k) { if (!(k in e)) e[k] = o[k]; }); // حقول قديمة تُحفظ كما هي
+    delete e.source_auto; // حفظها من اللوحة يعني أن صاحب الموقع راجع المصدر
     e.created_at = o.created_at || now; e.updated_at = now;
     if (e.origin == null) e.origin = "admin";
     if (e.sort_order === undefined) delete e.sort_order;
