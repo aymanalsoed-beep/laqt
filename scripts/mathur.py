@@ -126,7 +126,9 @@ def tafsir_entries(surah):
     return out
 
 
-def qiraat_entries(surah, show_usul=True):
+def qiraat_entries(surah, first_seen):
+    """first_seen: asl_key -> (سورة، آية) لأول موضع ذُكر فيه الأصل كاملًا، يُملأ بترتيب المصحف.
+    الفرش يُذكر في كل موضع، والأصل يُذكر كاملًا في أول موضع وفي غيره إحالة إليه."""
     p = QIRAAT / f"{surah:03d}.json"
     if not p.exists():
         return []
@@ -150,14 +152,32 @@ def qiraat_entries(surah, show_usul=True):
 
     ayat = sorted({x["ayah"] for x in q["mutawatir"]} | {x.get("also_ayah") for x in q["mutawatir"] if x.get("also_ayah")}
                   | {x["ayah"] for x in q["ijma"] + q["shadh"]} | set(q.get("no_farsh", [])))
+    def later(it, ay):
+        """نص الإحالة إن كان هذا الأصل قد ذُكر كاملًا في موضع سابق، وإلا None."""
+        if it.get("type") != "asl":
+            return None
+        k = it["asl_key"]
+        here = (surah, it["ayah"])
+        if k not in first_seen:
+            first_seen[k] = here
+        fs, fa = first_seen[k]
+        if (fs, fa) == here:
+            return None
+        where = f"الآية {ar(fa)}" if fs == surah else f"سورة {ar(fs)}، الآية {ar(fa)}"
+        return f"أصلٌ سبق بيانه في {where}، فيُرجع إليه."
+
     out = []
     for ay in ayat:
         parts = []
-        mut = [x for x in q["mutawatir"] if (x["ayah"] == ay or x.get("also_ayah") == ay)
-               and (show_usul or x["type"] == "farsh")]
+        mut = [x for x in q["mutawatir"] if x["ayah"] == ay or x.get("also_ayah") == ay]
         if mut:
             blocks = []
             for it in mut:
+                ref = later(it, ay)
+                if ref:
+                    blocks.append(f'<div class="q-item"><p class="q-word"><span class="qv">﴿{esc(it["word"])}﴾</span> '
+                                  f'<span class="q-tag">أصل</span></p><p class="q-ref">{ref}</p></div>')
+                    continue
                 if it["ayah"] != ay:   # موضع ثانٍ: إحالة إلى الأول
                     blocks.append(f'<div class="q-item"><p class="q-word"><span class="qv">﴿{esc(it["word"])}﴾</span> '
                                   f'<span class="q-tag">{"أصل" if it["type"] == "asl" else "فرش"}</span></p>'
@@ -198,6 +218,11 @@ def qiraat_entries(surah, show_usul=True):
         if sh:
             lis = []
             for x in sh:
+                ref = later(x, ay)
+                if ref:
+                    lis.append(f'<li class="q-shadh"><p class="q-word"><span class="qv">({esc(x["text"])})</span> '
+                               f'<span class="q-tag">أصل</span></p><p class="q-ref">{ref}</p></li>')
+                    continue
                 refs = "".join(ref_html(r) for r in x.get("refs", []))
                 tw = ""
                 if x.get("tawjih"):
@@ -205,7 +230,8 @@ def qiraat_entries(surah, show_usul=True):
                     tw = f'<p class="q-tawjih"><b>التوجيه:</b> {rich(x["tawjih"]["text"])} <small>({who})</small></p>'
                 tw += "".join(m.note_html(n) for n in x.get("tawjih_notes", []))
                 an = f' · الآثار: {nums(x["athar"])}' if x["athar"] else ""
-                lis.append(f'<li class="q-shadh"><p class="q-word"><span class="qv">({esc(x["text"])})</span> '
+                tag = '<span class="q-tag">أصل</span> ' if x.get("type") == "asl" else ""
+                lis.append(f'<li class="q-shadh"><p class="q-word"><span class="qv">({esc(x["text"])})</span> {tag}'
                            f'<small>{esc(x["desc"])}</small></p><p class="q-by">{esc(x["by"])}{an}</p>{tw}'
                            f'{("<ul class=" + chr(34) + "q-refs" + chr(34) + ">" + refs + "</ul>") if refs else ""}'
                            f'{athar_block(x["athar"])}</li>')
@@ -214,12 +240,13 @@ def qiraat_entries(surah, show_usul=True):
     return out
 
 
-def import_mathur(con, gid_of, show_usul=True):
+def import_mathur(con, gid_of):
     for s in SOURCES:
         con.execute("INSERT INTO sources (id, title, author, edition, notes) VALUES (?,?,?,?,?)",
                     (s["id"], s["title"], s["author"], s["edition"], s["notes"]))
     counts = {"tafsir": 0, "qiraat": 0}
     surahs = sorted(int(p.stem) for p in MAWSUAH.glob("[0-9][0-9][0-9].json"))
+    first_seen = {}   # أول موضع لكل أصل، بترتيب المصحف
     for sura in surahs:
         for ay, placement, title, body, sort in tafsir_entries(sura):
             cur = con.execute(
@@ -229,7 +256,7 @@ def import_mathur(con, gid_of, show_usul=True):
             g = gid_of[(sura, ay)]
             con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)", (cur.lastrowid, g, g, placement, "primary"))
             counts["tafsir"] += 1
-        for ay, body in qiraat_entries(sura, show_usul):
+        for ay, body in qiraat_entries(sura, first_seen):
             cur = con.execute(
                 "INSERT INTO entries (kind, body, body_format, source_id, status, origin, sort_order) VALUES (?,?,?,?,?,?,?)",
                 ("qiraat", body, "html", SRC_ID["badour"], "published", "qiraat", 0))

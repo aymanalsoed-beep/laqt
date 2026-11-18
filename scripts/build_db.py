@@ -18,7 +18,6 @@ DATA = ROOT / "data"
 DB = ROOT / "db" / "laqt.db"
 SCHEMA = ROOT / "db" / "schema.sql"
 REPORT = ROOT / "data" / "fawaid" / "link_report.md"
-CONFIG = json.loads((ROOT / "scripts" / "site_config.json").read_text(encoding="utf-8"))
 
 errors = []
 
@@ -229,7 +228,7 @@ def main():
     n_tafsir = import_tafsir(con, gid_of)
 
     # --- التفسير بالمأثور والقراءات: الموسوعة والبدور الزاهرة والمحتسب ---
-    n_mathur = import_mathur(con, gid_of, CONFIG.get("qiraat_show_usul", True))
+    n_mathur = import_mathur(con, gid_of)
 
     con.commit()
 
