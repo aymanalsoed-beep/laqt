@@ -356,3 +356,59 @@ mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 .1e
 /* بطاقة مصدر في المعنى الإجمالي */
 .entry-src { margin: 0 0 .3rem; font-weight: 600; color: var(--green); font-size: .95rem; }
 .panel-loading p { margin: 0; color: var(--ink-3); font-size: .95rem; padding: .4rem 0; }
+
+/* ---------- التفسير بالمأثور والقراءات (نص مولَّد من المصادر) ---------- */
+.entry-body.rich { white-space: normal; }
+.rich h3, .rich h4, .rich h5 { font-family: var(--f-head); color: var(--green); margin: .2rem 0 .5rem; font-weight: 400; }
+.rich h3 { font-size: 1.25rem; }
+.rich h4 { font-size: 1.08rem; border-bottom: 1px solid var(--line); padding-bottom: .2rem; margin-top: .9rem; }
+.rich h5 { font-size: 1rem; margin-top: .8rem; }
+.m-list { list-style: none; margin: 0; padding: 0; }
+.m-athar { position: relative; padding: .45rem 2.4rem .45rem 0; border-bottom: 1px dashed var(--line); }
+.m-athar:last-child { border-bottom: 0; }
+.m-athar.linked { border-bottom: 0; padding-bottom: 0; }
+.m-n { position: absolute; inset-inline-start: 0; top: .5rem; min-width: 2rem; text-align: center; font-size: .82rem;
+  color: var(--green); background: var(--paper-2); border-radius: 999px; padding: 0 .35rem; line-height: 1.6; }
+.m-text { margin: 0; line-height: 1.95; }
+.m-durr { font-size: .82rem; color: var(--ink-3); white-space: nowrap; }
+sup.fn { font-size: .7em; color: var(--ink-3); }
+.m-fns, .q-athar { margin: .3rem 0 0; font-size: .9rem; color: var(--ink-2); }
+.m-fns summary, .q-athar summary { cursor: pointer; color: var(--green); font-size: .88rem; width: fit-content; }
+.m-fns ol { margin: .3rem 0; padding-inline-start: 1.4rem; }
+.m-fns li { margin: .2rem 0; line-height: 1.8; }
+.m-page { margin: .2rem 0 0; font-size: .82rem; }
+.m-note { margin: .5rem 0 .2rem; background: var(--paper-2); border-inline-start: 3px solid var(--gold); border-radius: 8px; padding: .5rem .8rem; font-size: .95rem; }
+.m-note p { margin: 0; line-height: 1.85; }
+.m-note .m-note-h { font-weight: 600; color: var(--ink-2); font-size: .85rem; margin-bottom: .2rem; }
+.m-note-h small { font-weight: 400; margin-inline-start: .3rem; }
+.m-src, .m-hint { margin: .6rem 0 0; font-size: .85rem; color: var(--ink-3); }
+.q-item { padding: .3rem 0 .6rem; }
+.q-item + .q-item { border-top: 1px solid var(--line); padding-top: .7rem; }
+.q-word { margin: 0 0 .3rem; }
+.q-word small { color: var(--ink-3); margin-inline-start: .3rem; }
+.q-tag { font-size: .75rem; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 0 .5rem; vertical-align: middle; }
+.q-table { width: 100%; border-collapse: collapse; font-size: .95rem; margin: .2rem 0 .5rem; }
+.q-table th, .q-table td { border: 1px solid var(--line); padding: .35rem .5rem; text-align: start; vertical-align: top; }
+.q-table thead th { background: var(--paper-2); font-weight: 600; font-size: .85rem; color: var(--ink-2); }
+.q-table tbody th { font-weight: 400; }
+.q-table tbody th small { display: block; color: var(--ink-3); font-size: .8rem; }
+.q-an { white-space: nowrap; }
+.q-badour { margin: .4rem 0; padding: .5rem .8rem; border-inline-start: 3px solid var(--green); background: var(--paper-2); border-radius: 8px; font-size: .95rem; }
+.q-badour p { margin: 0 0 .3rem; line-height: 1.85; }
+.q-badour cite { font-style: normal; font-size: .82rem; }
+.q-remark, .q-ref, .q-by, .q-tawjih { margin: .3rem 0; line-height: 1.85; font-size: .95rem; }
+.q-by { font-size: .92rem; color: var(--ink-2); }
+.q-tawjih small { color: var(--ink-3); }
+.q-list { list-style: none; padding: 0; margin: 0; }
+.q-list > li { padding: .45rem 0; border-bottom: 1px dashed var(--line); }
+.q-list > li:last-child { border-bottom: 0; }
+.q-refs { margin: .2rem 0 0; padding-inline-start: 1.2rem; font-size: .85rem; color: var(--ink-2); }
+.intro-kind { padding: .7rem 1.2rem; }
+.intro-kind > summary { cursor: pointer; font-family: var(--f-head); font-size: 1.15rem; color: var(--green); }
+.intro-kind[open] > summary { margin-bottom: .4rem; }
+@media (max-width: 560px) {
+  .q-table, .q-table tbody, .q-table tr, .q-table th, .q-table td { display: block; width: 100%; }
+  .q-table thead { display: none; }
+  .q-table tr { border: 1px solid var(--line); border-radius: 8px; margin-bottom: .4rem; }
+  .q-table th, .q-table td { border: 0; }
+}

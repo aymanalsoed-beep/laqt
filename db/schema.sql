@@ -86,6 +86,8 @@ CREATE TABLE entries (
   kind          TEXT NOT NULL REFERENCES content_kinds(id),
   title         TEXT,
   body          TEXT NOT NULL,
+  body_format   TEXT NOT NULL DEFAULT 'text'
+                CHECK (body_format IN ('text','html')), -- html: نص مولَّد جاهز للعرض (المأثور والقراءات)
   source_id     INTEGER REFERENCES sources(id),
   source_ref    TEXT,                     -- الجزء والصفحة كما ورد
   status        TEXT NOT NULL DEFAULT 'draft'

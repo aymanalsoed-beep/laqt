@@ -10,11 +10,15 @@ import sys
 import unicodedata
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mathur import import_mathur  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 DB = ROOT / "db" / "laqt.db"
 SCHEMA = ROOT / "db" / "schema.sql"
 REPORT = ROOT / "data" / "fawaid" / "link_report.md"
+CONFIG = json.loads((ROOT / "scripts" / "site_config.json").read_text(encoding="utf-8"))
 
 errors = []
 
@@ -224,6 +228,9 @@ def main():
     # --- المعنى الإجمالي: التفسير الميسر والمختصر ---
     n_tafsir = import_tafsir(con, gid_of)
 
+    # --- التفسير بالمأثور والقراءات: الموسوعة والبدور الزاهرة والمحتسب ---
+    n_mathur = import_mathur(con, gid_of, CONFIG.get("qiraat_show_usul", True))
+
     con.commit()
 
     # --- ملخص ---
@@ -236,6 +243,7 @@ def main():
     print(f"الآيات: {n_ayat} | الفوائد: {n_entries} | روابط: {n_links} | آيات لها فوائد: {n_with} | "
           f"آيات تنتظر: {n_ayat - n_with}")
     print("المعنى الإجمالي: " + " | ".join(f"{k}: {v} مقطعًا" for k, v in n_tafsir.items()))
+    print(f"التفسير بالمأثور: {n_mathur['tafsir']} مادة | القراءات: {n_mathur['qiraat']} مادة")
     print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")
