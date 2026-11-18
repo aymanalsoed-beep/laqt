@@ -45,6 +45,6 @@ python3 scripts/build_db.py
 
 ## المصادر والتراخيص
 
-- **نص القرآن**: [مجمع الملك فهد لطباعة المصحف الشريف](https://qurancomplex.gov.sa/techquran/dev/)، بيانات حفص للمطورين الإصدار 18، عبر النسخة المنشورة في [thetruetruth/quran-data-kfgqpc](https://github.com/thetruetruth/quran-data-kfgqpc). الملف محفوظ كما نُشر دون تعديل، وحقل `text_uthmani` لا يزيد على حذف رقم الآية وعلامة ۞ للعرض. يُعرض النص بخط «حفص» الصادر من المجمع (الإصدار 18) ليظهر الرسم صحيحًا. تُراجع شروط الاستخدام في صفحة المجمع قبل إطلاق الموقع.
+- **نص القرآن**: [مجمع الملك فهد لطباعة المصحف الشريف](https://qurancomplex.gov.sa/techquran/dev/)، بيانات حفص للمطورين الإصدار 18، عبر النسخة المنشورة في [thetruetruth/quran-data-kfgqpc](https://github.com/thetruetruth/quran-data-kfgqpc). الملف محفوظ كما نُشر دون تعديل، وحقل `text_uthmani` لا يزيد على حذف رقم الآية وعلامة ۞ للعرض. يُعرض النص بخط «حفص» الصادر من المجمع (الإصدار 18) ليظهر الرسم صحيحًا. ويتيح المجمع استعمال نسخته الرقمية مجانًا في المواقع والبرامج ([شروط الاستخدام، نسخة مؤرشفة](https://web.archive.org/web/20250123095851/https://dm.qurancomplex.gov.sa/rights/)).
 - **القوائم الوصفية**: [quran-meta](https://github.com/quran-center/quran-meta) الإصدار 7.0.0، برخصة MIT (`data/sources/quran-meta/LICENSE`).
 - **الفوائد**: من جمع صاحب المشروع.
