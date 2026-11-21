@@ -291,6 +291,16 @@ class Site:
 
     # ---------------------------------------------------------- السورة
 
+    def src_label(self, e) -> str:
+        """عنوان المصدر فوق المادة: الكتاب، ومعه قائله وموضعه إن وُجدا (كما في نقول الوقف)."""
+        label = e.get("source_title") or ""
+        if label and e["kind"] == "waqf" and e.get("source_author"):
+            label = f'{e["source_author"].split(" (")[0]}: {label}'
+        if label and e.get("source_ref"):
+            ref = re.sub(r"\s*[-–]\s*", " – ", e["source_ref"])   # «١/٤٧٤ – ٤٧٥» تُقرأ صحيحة من اليمين
+            label += f' ({ref.translate(AR_DIGITS)})'
+        return label
+
     def entry_card(self, e, l, prefix, here_ayah=None) -> str:
         """بطاقة مادة واحدة (فائدة أو غيرها)."""
         note = ""
@@ -307,7 +317,7 @@ class Site:
                      f'رابط الفائدة</a><button class="btn-ghost share" data-url="faida/{e["id"]}.html" '
                      f'type="button">مشاركة</button></div>')
         if e["kind"] != "faida" and e.get("source_title"):
-            src = f'<p class="entry-src">{esc(e["source_title"])}</p>'
+            src = f'<p class="entry-src">{esc(self.src_label(e))}</p>'
             return (f'<article class="entry entry-{e["kind"]}">{src}{note}{self.body_html(e, prefix)}</article>')
         return (f'<article class="entry entry-{e["kind"]}" id="f{e["id"]}-{l["first_ayah_id"]}">'
                 f'{note}{self.body_html(e, prefix)}{self.source_html(e)}{tools}</article>')
@@ -351,6 +361,21 @@ class Site:
         cards = "".join(self.entry_card(e, l, prefix) for e, l in items)
         return f'<section class="surah-block {cls}"><h2>{esc(title)}</h2>{cards}</section>'
 
+    def waqf_intro(self, sid, prefix) -> str:
+        """«مسائل عامة في وقوف السورة» من جمهرة العلوم: مطوية قبل أول آية."""
+        items = [x for x in self.intro[sid] if x[0]["kind"] == "waqf"]
+        if not items:
+            return ""
+        groups = defaultdict(list)
+        for e, l in items:
+            groups[e["title"] or "مسائل عامة في وقوف السورة"].append((e, l))
+        out = []
+        for title, its in groups.items():
+            cards = "".join(f'<article class="entry entry-waqf"><p class="entry-src">{esc(self.src_label(e))}</p>'
+                            f'{self.body_html(e, prefix)}</article>' for e, _ in its)
+            out.append(f'<details class="surah-block waqf-intro"><summary>{esc(title)}</summary>{cards}</details>')
+        return "".join(out)
+
     def build_surah(self, s):
         prefix = "../"
         sid = s["id"]
@@ -363,13 +388,21 @@ class Site:
                 parts.append(f'<div class="juz-mark"><span>بداية الجزء {ar(a["juz"])}</span></div>')
             parts.append(self.ayah_html(a, prefix))
         for kind in self.lazy_kinds:
-            data = {}
+            # كل مادة تُكتب مرة واحدة في "e"، و"a" يذكر لكل آية أرقام موادها
+            # (المقطع الطويل يظهر تحت كل آياته دون أن يتكرر نصه في الملف)
+            data, index = {"e": [], "a": {}}, {}
             for a in ayat:
                 items = sorted(self.lazy[a["id"]].get(kind, []), key=lambda x: (x[0]["sort_order"], x[0]["id"]))
-                if items:
-                    data[a["number"]] = [[e.get("source_title") or "", e["body"].strip(),
-                                          "" if l["first_ayah_id"] == l["last_ayah_id"] else self.ref(l, False)]
-                                         for e, l in items]
+                for e, l in items:
+                    k = (e["id"], l["first_ayah_id"], l["last_ayah_id"])
+                    if k not in index:
+                        index[k] = len(data["e"])
+                        data["e"].append([self.src_label(e), e["body"].strip(),
+                                          "" if l["first_ayah_id"] == l["last_ayah_id"] else self.ref(l, False)])
+                    data["a"].setdefault(a["number"], []).append(index[k])
+            credit = CONFIG.get("credits", {}).get(kind)
+            if credit and data["e"]:
+                data["_credit"] = credit
             p = self.out / "assets" / kind / f"{sid}.json"
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -412,7 +445,8 @@ class Site:
   </div>
 </div>
 <div class="wrap surah-body">
-  {self.surah_block("فوائد عامة في السورة", self.intro[sid], prefix, "intro")}
+  {self.surah_block("فوائد عامة في السورة", [x for x in self.intro[sid] if x[0]["kind"] != "waqf"], prefix, "intro")}
+  {self.waqf_intro(sid, prefix)}
   {basmala}
   {''.join(parts)}
   {self.surah_block("فوائد في ختام السورة", self.end[sid], prefix, "outro")}

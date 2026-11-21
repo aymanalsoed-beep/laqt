@@ -66,7 +66,7 @@ CREATE TABLE rubs (
 
 -- أنواع المحتوى؛ كل نوع يصير تبويبًا تحت الآية في الموقع
 CREATE TABLE content_kinds (
-  id          TEXT PRIMARY KEY,           -- qiraat, maana, tafsir, irab, faida, ...
+  id          TEXT PRIMARY KEY,           -- qiraat, maana, tafsir, irab, waqf, faida, ...
   name_ar     TEXT NOT NULL,
   sort_order  INTEGER NOT NULL
 );
@@ -130,6 +130,8 @@ SELECT a.id, a.surah_id, a.number, a.page, a.juz, a.hizb, a.rub,
      WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'tafsir') AS tafsir,
   (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
      WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'irab')   AS irab,
+  (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
+     WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'waqf')   AS waqf,
   (SELECT count(*) FROM entry_ayat ea JOIN entries e ON e.id = ea.entry_id
      WHERE a.id BETWEEN ea.first_ayah_id AND ea.last_ayah_id AND e.kind = 'faida')  AS fawaid
 FROM ayat a;
