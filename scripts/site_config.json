@@ -18,6 +18,13 @@
     "url_pattern": "https://everyayah.com/data/Husary_128kbps/{sss}{aaa}.mp3"
   },
   "lazy_kinds": [
-    "maana"
-  ]
+    "maana",
+    "waqf"
+  ],
+  "credits": {
+    "waqf": {
+      "text": "نقلًا عن «جمهرة العلوم»، قسم الوقف والابتداء",
+      "url": "https://jamharah.net/forumdisplay.php?f=430"
+    }
+  }
 }

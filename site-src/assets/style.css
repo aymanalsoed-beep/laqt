@@ -356,3 +356,10 @@ mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 .1e
 /* بطاقة مصدر في المعنى الإجمالي */
 .entry-src { margin: 0 0 .3rem; font-weight: 600; color: var(--green); font-size: .95rem; }
 .panel-loading p { margin: 0; color: var(--ink-3); font-size: .95rem; padding: .4rem 0; }
+
+/* الوقف والابتداء */
+.waqf-intro summary { cursor: pointer; font-family: var(--f-head); font-size: 1.2rem; color: var(--green); }
+.waqf-intro[open] summary { margin-bottom: .6rem; }
+.waqf-intro .entry + .entry, .panel .entry-waqf + .entry-waqf { border-top: 1px dashed var(--line); padding-top: .7rem; margin-top: .7rem; }
+.entry-credit { margin: .8rem 0 0; font-size: .85rem; }
+.entry-credit a { color: var(--muted, inherit); text-decoration: none; border-bottom: 1px dotted currentColor; }

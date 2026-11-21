@@ -85,6 +85,49 @@ def import_tafsir(con, gid_of):
     return counts
 
 
+# الوقف والابتداء: نقول الأئمة الأربعة كما جمعها قسم «الوقف والابتداء» في جمهرة العلوم
+# (jamharah.net، جمع الشيخ عبد العزيز بن داخل المطيري)، يستوردها scripts/import_jamharah.py.
+WAQF_SOURCES = {
+    "anbari": (21, "إيضاح الوقف والابتداء", "ابن الأنباري (ت: 328هـ)"),
+    "dani": (22, "المكتفى في الوقف والابتدا", "أبو عمرو الداني (ت: 444هـ)"),
+    "sajawandi": (23, "علل الوقوف", "السجاوندي (ت: 560هـ)"),
+    "ashmuni": (24, "منار الهدى في بيان الوقف والابتدا", "الأشموني (ت: ق11هـ)"),
+}
+WAQF_NOTE = "نقلًا عن جمهرة العلوم، قسم الوقف والابتداء: {url}"
+
+
+def import_waqf(con, gid_of):
+    """كل نقل مادة مستقلة بنوع waqf، مربوطة بالمقطع الذي في عنوان مشاركتها، ومصدرها كتاب قائله
+    وموضعها منه في source_ref. و«مسائل عامة في وقوف السورة» تُربط بالسورة كلها (placement=intro)."""
+    for key, (sid, title, author) in WAQF_SOURCES.items():
+        con.execute("INSERT INTO sources (id, title, author, notes) VALUES (?,?,?,?)",
+                    (sid, title, author, "نقلًا عن جمهرة العلوم (jamharah.net)، قسم الوقف والابتداء"))
+    n = 0
+    for f in sorted((DATA / "sources/jamharah/waqf").glob("*.json")):
+        doc = json.loads(f.read_text(encoding="utf-8"))
+        sura = doc["surah"]
+        last = max(a for (s, a) in gid_of if s == sura)
+        for p in doc["posts"]:
+            if p["type"] == "general":
+                a, b, place = 1, last, "intro"
+            else:
+                a, b = p["ayat"]
+                place = None
+            check((sura, a) in gid_of and (sura, b) in gid_of, f"الوقف: موضع غير موجود {sura}:{a}-{b}")
+            for i, q in enumerate(p["quotes"]):
+                check(q["author"] in WAQF_SOURCES, f"الوقف {sura}:{a}: نقل بلا قائل معروف")
+                cur = con.execute(
+                    "INSERT INTO entries (kind, title, body, source_id, source_ref, status, origin, flags, sort_order)"
+                    " VALUES (?,?,?,?,?,?,?,?,?)",
+                    ("waqf", p["heading"] if place else None, q["text"], WAQF_SOURCES[q["author"]][0],
+                     q["ref"] or None, "published", "jamharah",
+                     json.dumps([WAQF_NOTE.format(url=doc["url"])], ensure_ascii=False), i))
+                con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)",
+                            (cur.lastrowid, gid_of[(sura, a)], gid_of[(sura, b)], place, "primary"))
+                n += 1
+    return n
+
+
 def main():
     hafs = json.loads((DATA / "sources/kfgqpc/hafsData_v18.json").read_text(encoding="utf-8"))
     lists = json.loads((DATA / "sources/quran-meta/hafs_lists.json").read_text(encoding="utf-8"))
@@ -102,7 +145,8 @@ def main():
     con.executemany("INSERT INTO content_kinds VALUES (?,?,?)", [
         # الخانات الخمس بترتيبها المعتمد في «الملف الجامع»
         ("qiraat", "القراءات", 1), ("maana", "المعنى الإجمالي", 2),
-        ("tafsir", "التفسير بالمأثور", 3), ("irab", "الإعراب", 4), ("faida", "الفوائد", 5),
+        ("tafsir", "التفسير بالمأثور", 3), ("irab", "الإعراب", 4),
+        ("waqf", "الوقف والابتداء", 5), ("faida", "الفوائد", 6),
     ])
 
     # --- المصفوفات المساعدة (معرّف الآية التسلسلي 1..6236) ---
@@ -224,6 +268,9 @@ def main():
     # --- المعنى الإجمالي: التفسير الميسر والمختصر ---
     n_tafsir = import_tafsir(con, gid_of)
 
+    # --- الوقف والابتداء ---
+    n_waqf = import_waqf(con, gid_of)
+
     con.commit()
 
     # --- ملخص ---
@@ -236,6 +283,7 @@ def main():
     print(f"الآيات: {n_ayat} | الفوائد: {n_entries} | روابط: {n_links} | آيات لها فوائد: {n_with} | "
           f"آيات تنتظر: {n_ayat - n_with}")
     print("المعنى الإجمالي: " + " | ".join(f"{k}: {v} مقطعًا" for k, v in n_tafsir.items()))
+    print(f"الوقف والابتداء: {n_waqf} نقلًا")
     print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")

@@ -106,13 +106,14 @@
         panel.innerHTML = "<p>جارٍ التحميل…</p>";
         ayah.appendChild(panel);
         loadLazy(kind).then(function (data) {
-          var items = data[ayah.getAttribute("data-n")] || [];
+          var items = (data.a[ayah.getAttribute("data-n")] || []).map(function (i) { return data.e[i]; });
           panel.className = "panel";
           panel.innerHTML = items.map(function (it) {
             return '<article class="entry entry-' + kind + '">' + (it[0] ? '<p class="entry-src">' + escH(it[0]) + "</p>" : "") +
               (it[2] ? '<p class="entry-note">على الآيات ' + escH(it[2]) + ".</p>" : "") +
               '<div class="entry-body">' + quranSpans(escH(it[1])) + "</div></article>";
-          }).join("");
+          }).join("") + (data._credit ? '<p class="entry-credit"><a href="' + escH(data._credit.url) +
+            '" target="_blank" rel="noopener">' + escH(data._credit.text) + "</a></p>" : "");
         }, function () { panel.innerHTML = "<p>تعذّر التحميل، فأعد المحاولة.</p>"; panel.remove(); toast("تعذّر التحميل"); });
       } else if (!panel) {
         panel = tpl.content.firstElementChild.cloneNode(true);
