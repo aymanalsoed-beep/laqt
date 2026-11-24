@@ -6,7 +6,7 @@
   # <الآية أو من-إلى> | <المجلد>:<الصفحة الأولى>-<الصفحة الأخيرة>
   سطور الإعراب، وفيها: [[كلمة]] للكلمة المعربة، ^ن لرقم الحاشية (مرقمة لكل آية)،
   «## عنوان» لعنوان فائدة أو وجه، و«※» في أول سطر حكم الجملة.
-  ~ سطر حاشية (بترتيب أرقامها)
+  ~ سطر حاشية (بترتيب أرقامها)، و«~~ » فقرة تابعة للحاشية السابقة
 
 التشغيل:  python3 scripts/import_tafseel.py 2
 """
@@ -31,6 +31,8 @@ def convert(sura: int) -> None:
             cur = {"ayah": a[0] if len(a) == 1 else a, "volume": int(m.group(2)),
                    "pages": [int(m.group(3)), int(m.group(4))], "body": [], "notes": []}
             ayat.append(cur)
+        elif line.startswith("~~ "):
+            cur["notes"][-1] += "\n" + line[3:].strip()
         elif line.startswith("~ "):
             cur["notes"].append(line[2:].strip())
         elif line.strip():
