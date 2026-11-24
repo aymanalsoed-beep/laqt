@@ -19,7 +19,8 @@
   },
   "lazy_kinds": [
     "maana",
-    "waqf"
+    "waqf",
+    "irab"
   ],
   "credits": {
     "waqf": {
