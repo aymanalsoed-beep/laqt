@@ -153,7 +153,7 @@ def import_irab(con, gid_of):
             if it.get("notes"):
                 body += "\n---\n" + "\n".join(f"({str(k).translate(AR_NUM)}) {t}" for k, t in enumerate(it["notes"], 1))
             p1, p2 = it["pages"]
-            ref = f'{doc["volume"]}/{p1}' + (f"-{p2}" if p2 != p1 else "")
+            ref = f'{it.get("volume", doc.get("volume"))}/{p1}' + (f"-{p2}" if p2 != p1 else "")
             cur = con.execute(
                 "INSERT INTO entries (kind, body, source_id, source_ref, status, origin, sort_order)"
                 " VALUES (?,?,?,?,?,?,?)",
