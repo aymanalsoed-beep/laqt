@@ -9,9 +9,7 @@
     "ready",
     "published"
   ],
-  "hidden_kinds": [
-    "irab"
-  ],
+  "hidden_kinds": [],
   "default_open_kind": "faida",
   "audio": {
     "name": "محمود خليل الحصري (مرتّل)",
