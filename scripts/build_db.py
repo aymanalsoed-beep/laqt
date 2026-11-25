@@ -128,6 +128,42 @@ def import_waqf(con, gid_of):
     return n
 
 
+# الإعراب: «التفصيل في إعراب آيات التنزيل»، استُخرج نصه من صور الكتاب بأداة arabi.tools
+# (scripts/import_tafseel.py) ورُوجع على الصور. ملف لكل سورة في data/sources/tafseel/<sss>.json.
+AR_NUM = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+IRAB_SOURCE = (31, "التفصيل في إعراب آيات التنزيل",
+               "عبد اللطيف محمد الخطيب، وسعد عبد العزيز مصلوح، ورجب حسن العلوش",
+               "مكتبة الخطيب، الكويت، ط1 (1436هـ/2015م)")
+
+
+def import_irab(con, gid_of):
+    """إعراب كل آية (أو مقطع) مادة واحدة بنوع irab. النص بعلامات خفيفة يعرضها الموقع:
+    [[كلمة]] للكلمة المعربة، و^ن لرقم الحاشية، و«## » لعنوان فائدة، والحواشي بعد سطر «---»."""
+    sid, title, author, edition = IRAB_SOURCE
+    con.execute("INSERT INTO sources (id, title, author, edition, notes) VALUES (?,?,?,?,?)",
+                (sid, title, author, edition, "نُسخ من صور الكتاب بأداة arabi.tools ثم روجع"))
+    n = 0
+    for f in sorted((DATA / "sources/tafseel").glob("[0-9][0-9][0-9].json")):
+        doc = json.loads(f.read_text(encoding="utf-8"))
+        sura = doc["surah"]
+        for i, it in enumerate(doc["ayat"]):
+            a, b = it["ayah"] if isinstance(it["ayah"], list) else (it["ayah"], it["ayah"])
+            check((sura, a) in gid_of and (sura, b) in gid_of, f"الإعراب: موضع غير موجود {sura}:{a}-{b}")
+            body = it["text"].strip()
+            if it.get("notes"):
+                body += "\n---\n" + "\n".join(f"({str(k).translate(AR_NUM)}) {t}" for k, t in enumerate(it["notes"], 1))
+            p1, p2 = it["pages"]
+            ref = f'{it.get("volume", doc.get("volume"))}/{p1}' + (f"-{p2}" if p2 != p1 else "")
+            cur = con.execute(
+                "INSERT INTO entries (kind, body, source_id, source_ref, status, origin, sort_order)"
+                " VALUES (?,?,?,?,?,?,?)",
+                ("irab", body, sid, ref, it.get("status", "published"), "ocr", i))
+            con.execute("INSERT INTO entry_ayat VALUES (?,?,?,?,?)",
+                        (cur.lastrowid, gid_of[(sura, a)], gid_of[(sura, b)], None, "primary"))
+            n += 1
+    return n
+
+
 def main():
     hafs = json.loads((DATA / "sources/kfgqpc/hafsData_v18.json").read_text(encoding="utf-8"))
     lists = json.loads((DATA / "sources/quran-meta/hafs_lists.json").read_text(encoding="utf-8"))
@@ -271,6 +307,9 @@ def main():
     # --- الوقف والابتداء ---
     n_waqf = import_waqf(con, gid_of)
 
+    # --- الإعراب ---
+    n_irab = import_irab(con, gid_of)
+
     con.commit()
 
     # --- ملخص ---
@@ -284,6 +323,7 @@ def main():
           f"آيات تنتظر: {n_ayat - n_with}")
     print("المعنى الإجمالي: " + " | ".join(f"{k}: {v} مقطعًا" for k, v in n_tafsir.items()))
     print(f"الوقف والابتداء: {n_waqf} نقلًا")
+    print(f"الإعراب: {n_irab} مادة")
     print(f"فروق الأحزاب: {len(hizb_diffs)} | روابط استشهاد: {len(quote_misses)}")
     if errors:
         print("أخطاء:", *errors, sep="\n- ")

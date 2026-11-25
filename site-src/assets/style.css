@@ -363,3 +363,14 @@ mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 .1e
 .waqf-intro .entry + .entry, .panel .entry-waqf + .entry-waqf { border-top: 1px dashed var(--line); padding-top: .7rem; margin-top: .7rem; }
 .entry-credit { margin: .8rem 0 0; font-size: .85rem; }
 .entry-credit a { color: var(--muted, inherit); text-decoration: none; border-bottom: 1px dotted currentColor; }
+
+/* الإعراب */
+.irab-body { white-space: normal; }
+.irab-body p { margin: 0 0 .55rem; }
+.irab-body .iw { font-family: var(--f-quran); font-size: 1.15em; color: var(--green); font-weight: 600; }
+.irab-body .irab-jumla { color: var(--green); }
+.irab-body .irab-h { margin: 1rem 0 .4rem; font-size: 1rem; color: var(--green); }
+.irab-body sup.fnr { font-size: .7em; color: var(--muted, #777); padding: 0 1px; }
+.irab-notes { margin-top: .8rem; border-top: 1px dashed var(--line); padding-top: .5rem; font-size: .88rem; }
+.irab-notes summary { cursor: pointer; color: var(--green); font-weight: 600; }
+.irab-notes p { margin: .35rem 0; }

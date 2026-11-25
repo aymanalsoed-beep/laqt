@@ -85,6 +85,24 @@
     }
     function escH(t) { return t.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
     function quranSpans(h) { return h.replace(/﴿[^﴿﴾\n]{1,400}﴾/g, function (m) { return '<span class="qv">' + m + "</span>"; }); }
+    // الإعراب: [[كلمة]] الكلمة المعربة، ^ن رقم حاشية، «## » عنوان فائدة، «※» حكم الجملة، والحواشي بعد «---»
+    function irabHtml(t) {
+      var parts = t.split(/\n---\n/);
+      function inline(s) {
+        return quranSpans(escH(s)).replace(/\[\[([^\]]+)\]\]/g, '<span class="iw">$1</span>')
+          .replace(/\^([0-9٠-٩]+)/g, '<sup class="fnr">$1</sup>');
+      }
+      var h = parts[0].split("\n").map(function (l) {
+        l = l.trim();
+        if (!l) return "";
+        if (l.indexOf("## ") === 0) return '<h4 class="irab-h">' + inline(l.slice(3)) + "</h4>";
+        if (l.charAt(0) === "※") return '<p class="irab-jumla">' + inline(l) + "</p>";
+        return "<p>" + inline(l) + "</p>";
+      }).join("");
+      if (parts[1]) h += '<details class="irab-notes"><summary>الحواشي</summary>' +
+        parts[1].split("\n").map(function (l) { return "<p>" + inline(l) + "</p>"; }).join("") + "</details>";
+      return h;
+    }
 
     // الخانات: فتح وطي
     page.addEventListener("click", function (ev) {
@@ -111,7 +129,8 @@
           panel.innerHTML = items.map(function (it) {
             return '<article class="entry entry-' + kind + '">' + (it[0] ? '<p class="entry-src">' + escH(it[0]) + "</p>" : "") +
               (it[2] ? '<p class="entry-note">على الآيات ' + escH(it[2]) + ".</p>" : "") +
-              '<div class="entry-body">' + quranSpans(escH(it[1])) + "</div></article>";
+              (kind === "irab" ? '<div class="entry-body irab-body">' + irabHtml(it[1]) :
+                '<div class="entry-body">' + quranSpans(escH(it[1]))) + "</div></article>";
           }).join("") + (data._credit ? '<p class="entry-credit"><a href="' + escH(data._credit.url) +
             '" target="_blank" rel="noopener">' + escH(data._credit.text) + "</a></p>" : "");
         }, function () { panel.innerHTML = "<p>تعذّر التحميل، فأعد المحاولة.</p>"; panel.remove(); toast("تعذّر التحميل"); });
